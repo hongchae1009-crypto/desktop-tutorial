@@ -11,7 +11,8 @@
  */
 import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { ReagentItem, RecentSearch, SortState, ViewMode } from '@/types/reagent';
+import type { Cabinet, ReagentItem, RecentSearch, SortState, StorageCondition, ViewMode } from '@/types/reagent';
+import type { ParsedReagentRow } from '@/utils/excel';
 import { useBasketStore } from '@/store/basketStore';
 import {
   MOCK_CABINETS,
@@ -31,6 +32,8 @@ import QuantTable           from './components/QuantTable/QuantTable';
 import Pagination           from './components/Pagination';
 import BasketPanel          from './components/BasketPanel/BasketPanel';
 import ReagentDataModal     from './components/ReagentDataModal/ReagentDataModal';
+import RegisterModal        from './components/RegisterModal/RegisterModal';
+import AddCabinetModal      from './components/AddCabinetModal/AddCabinetModal';
 
 const PER_PAGE_CARD  = 9;
 const PER_PAGE_TABLE = 20;
@@ -48,6 +51,10 @@ function ReagentPageInner() {
   const { showToast } = useToast();
   const basket = useBasketStore();
   const navigate = useNavigate();
+
+  // ── 시약장 + 시약 (mutable state) ────────────────────────────
+  const [cabinets, setCabinets] = useState<Cabinet[]>(MOCK_CABINETS);
+  const [reagents, setReagents] = useState<ReagentItem[]>(MOCK_REAGENTS);
 
   // ── 시약장 탭 ────────────────────────────────────────────────
   const [activeCabId, setActiveCabId] = useState(MOCK_CABINETS[0].id);
@@ -79,19 +86,27 @@ function ReagentPageInner() {
     setPage(1);
   }
 
-  // ── 모달 ────────────────────────────────────────────────────
+  // ── 모달 상태 ────────────────────────────────────────────────
   const [modalId, setModalId] = useState<string | null>(null);
-  const modalReagent = MOCK_REAGENTS.find((r) => r.id === modalId) ?? null;
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [showAddCabinetModal, setShowAddCabinetModal] = useState(false);
+
+  const modalReagent = reagents.find((r) => r.id === modalId) ?? null;
+
+  // ── 자주쓰는 탭 여부 ─────────────────────────────────────────
+  const isFavTab = useMemo(() => {
+    const cab = cabinets.find((c) => c.id === activeCabId);
+    return !!cab?.isFavorite;
+  }, [cabinets, activeCabId]);
 
   // ── 필터링 + 정렬 + 페이지네이션 ────────────────────────────
   const filtered = useMemo(() => {
     const kw = query.toLowerCase().trim();
-    const cabinetFiltered = MOCK_REAGENTS.filter((r) => {
-      // 자주쓰는 시약장은 전체 탭이므로 cabinetId 필터 스킵
-      const cab = MOCK_CABINETS.find((c) => c.id === activeCabId);
+    const cabinetFiltered = reagents.filter((r) => {
+      const cab = cabinets.find((c) => c.id === activeCabId);
       if (!cab) return true;
-      if (cab.isFavorite) return true;
-      return r.cabinetId === activeCabId;
+      if (cab.isFavorite) return r.isFavorite;
+      return r.cabinetId === activeCabId || (r.referencedIn && r.referencedIn.includes(activeCabId));
     });
 
     if (!kw) return cabinetFiltered;
@@ -102,7 +117,7 @@ function ReagentPageInner() {
         r.pinCode.toLowerCase().includes(kw) ||
         (r.alias ?? '').toLowerCase().includes(kw),
     );
-  }, [query, activeCabId]);
+  }, [query, activeCabId, reagents, cabinets]);
 
   const sorted = useMemo(() => {
     if (!sortState.key) return filtered;
@@ -125,13 +140,13 @@ function ReagentPageInner() {
   const handleSelect = useCallback(
     (id: string, checked: boolean) => {
       if (checked) {
-        const r = MOCK_REAGENTS.find((x) => x.id === id);
+        const r = reagents.find((x) => x.id === id);
         if (r) basket.add({ id: r.id, pinCode: r.pinCode, name: r.compoundName, smiles: r.smiles });
       } else {
         basket.remove(id);
       }
     },
-    [basket],
+    [basket, reagents],
   );
 
   const handleSelectAll = useCallback(
@@ -157,6 +172,156 @@ function ReagentPageInner() {
   function applyChip(kw: string) {
     setQuery(kw);
     setPage(1);
+  }
+
+  // ── 시약 등록 핸들러 ─────────────────────────────────────────
+  function handleRegister(item: Omit<ReagentItem, 'id' | 'createdAt' | 'updatedAt'>) {
+    const now = new Date();
+    const newReagent: ReagentItem = {
+      ...item,
+      id: `rgn_${Date.now()}`,
+      createdAt: now,
+      updatedAt: now,
+    };
+    setReagents((prev) => [newReagent, ...prev]);
+    // 해당 시약장 count 업데이트
+    setCabinets((prev) =>
+      prev.map((c) =>
+        c.id === newReagent.cabinetId ? { ...c, count: c.count + 1 } : c,
+      ),
+    );
+    showToast(`${newReagent.compoundName} 등록 완료`);
+    setShowRegisterModal(false);
+  }
+
+  function handleBulkRegister(rows: ParsedReagentRow[], cabinetId: string) {
+    const now = new Date();
+    const newReagents: ReagentItem[] = rows.map((row, i) => ({
+      id: `rgn_${Date.now()}_${i}`,
+      isFavorite: false,
+      pinCode: row.pinCode ?? `B${String(i + 1).padStart(3, '0')}`,
+      compoundName: row.compoundName ?? '(미입력)',
+      alias: undefined,
+      smiles: row.smiles,
+      casNumber: row.casNumber,
+      mw: row.mw,
+      location: row.location ?? '',
+      quantity: row.quantity ?? 0,
+      unit: row.unit ?? 'g',
+      supplier: row.supplier,
+      productNumber: row.productNumber,
+      purity: row.purity,
+      notes: row.notes,
+      cabinetId,
+      registeredBy: '채은',
+      isActive: true,
+      storageConditions: [] as StorageCondition[],
+      createdAt: now,
+      updatedAt: now,
+    }));
+    setReagents((prev) => [...newReagents, ...prev]);
+    const countMap: Record<string, number> = {};
+    newReagents.forEach((r) => {
+      countMap[r.cabinetId] = (countMap[r.cabinetId] ?? 0) + 1;
+    });
+    setCabinets((prev) =>
+      prev.map((c) =>
+        countMap[c.id] !== undefined ? { ...c, count: c.count + countMap[c.id] } : c,
+      ),
+    );
+    showToast(`${newReagents.length}개 시약 일괄 등록 완료`);
+    setShowRegisterModal(false);
+  }
+
+  // ── 시약장 추가 핸들러 ────────────────────────────────────────
+  function handleCabinetCreated(newCab: Cabinet) {
+    setCabinets((prev) => [...prev, newCab]);
+    setShowAddCabinetModal(false);
+    showToast(`${newCab.name} 시약장이 추가되었습니다`);
+  }
+
+  // ── 자주쓰는 시약장 추가/제거 ─────────────────────────────────
+  function handleAddToFav() {
+    const basketIds = Object.keys(basket.items);
+    const updated = reagents.map((r) =>
+      basketIds.includes(r.id) ? { ...r, isFavorite: true } : r,
+    );
+    setReagents(updated);
+    basket.clear();
+    showToast(`${basketIds.length}개 시약을 자주쓰는 시약장에 추가했습니다`);
+  }
+
+  function handleRemoveFromFav() {
+    const basketIds = Object.keys(basket.items);
+    const updated = reagents.map((r) =>
+      basketIds.includes(r.id) ? { ...r, isFavorite: false } : r,
+    );
+    setReagents(updated);
+    basket.clear();
+    showToast(`${basketIds.length}개 시약을 자주쓰는 시약장에서 제거했습니다`);
+  }
+
+  // ── 다른 시약장에 추가 (참조 시약 생성) ──────────────────────
+  function handleAddToOtherCabinet(targetCabId: string, toAddIds: string[], alreadyCount: number) {
+    const targetCab = cabinets.find((c) => c.id === targetCabId);
+    if (!targetCab) return;
+
+    const now = new Date();
+    const newReferences: ReagentItem[] = toAddIds.flatMap((id, i) => {
+      const origin = reagents.find((r) => r.id === id);
+      if (!origin) return [];
+      const ref: ReagentItem = {
+        ...origin,
+        id: `rgn_ref_${Date.now()}_${i}`,
+        cabinetId: targetCabId,
+        isReference: true,
+        originId: origin.id,
+        originCabinetName: cabinets.find((c) => c.id === origin.cabinetId)?.name ?? '',
+        createdAt: now,
+        updatedAt: now,
+      };
+      return [ref];
+    });
+
+    // 원본 시약의 referencedIn 업데이트
+    const updatedReagents = reagents.map((r) => {
+      if (toAddIds.includes(r.id)) {
+        const refs = r.referencedIn ?? [];
+        if (!refs.includes(targetCabId)) {
+          return { ...r, referencedIn: [...refs, targetCabId] };
+        }
+      }
+      return r;
+    });
+
+    setReagents([...updatedReagents, ...newReferences]);
+    setCabinets((prev) =>
+      prev.map((c) =>
+        c.id === targetCabId ? { ...c, count: c.count + newReferences.length } : c,
+      ),
+    );
+
+    basket.clear();
+
+    const msgs: string[] = [];
+    if (newReferences.length > 0) msgs.push(`${newReferences.length}개 참조 추가`);
+    if (alreadyCount > 0) msgs.push(`${alreadyCount}개 이미 있음`);
+    showToast(`${targetCab.name}: ${msgs.join(', ')}`);
+  }
+
+  // ── ReagentDataModal 저장 ─────────────────────────────────────
+  function handleModalSave(id: string, data: Partial<ReagentItem>) {
+    setReagents((prev) =>
+      prev.map((r) => r.id === id ? { ...r, ...data, updatedAt: new Date() } : r),
+    );
+  }
+
+  function handleModalDisuse(id: string) {
+    setReagents((prev) =>
+      prev.map((r) => r.id === id ? { ...r, isActive: false, updatedAt: new Date() } : r),
+    );
+    setModalId(null);
+    showToast('말소 처리되었습니다');
   }
 
   return (
@@ -241,14 +406,15 @@ function ReagentPageInner() {
           <PageHeader
             searchValue={query}
             onSearch={handleSearch}
-            onRegister={() => showToast('시약 등록 화면으로 이동합니다')}
+            onRegister={() => setShowRegisterModal(true)}
+            reagents={sorted}
           />
 
           <CabinetTabBar
-            cabinets={MOCK_CABINETS}
+            cabinets={cabinets}
             activeCabinetId={activeCabId}
             onTabChange={(id) => { setActiveCabId(id); setPage(1); }}
-            onAddCabinet={() => showToast('시약장 추가 화면으로 이동합니다')}
+            onAddCabinet={() => setShowAddCabinetModal(true)}
           />
 
           {/* 콘텐츠 영역 */}
@@ -295,24 +461,47 @@ function ReagentPageInner() {
             </div>
 
             {/* 장바구니 패널 */}
-            <BasketPanel />
+            <BasketPanel
+              cabinets={cabinets}
+              activeCabinetId={activeCabId}
+              allReagents={reagents}
+              isFavTab={isFavTab}
+              onAddToFav={handleAddToFav}
+              onRemoveFromFav={handleRemoveFromFav}
+              onAddToOtherCabinet={handleAddToOtherCabinet}
+            />
           </div>
         </main>
       </div>
 
-      {/* 시약 데이터 모달 */}
+      {/* ── 시약 데이터 모달 ── */}
       {modalId && (
         <ReagentDataModal
           reagent={modalReagent}
           recentUsers={MOCK_RECENT_USERS}
-          cabinets={MOCK_CABINETS.map((c) => ({ id: c.id, name: c.name }))}
+          cabinets={cabinets.map((c) => ({ id: c.id, name: c.name }))}
           onClose={() => setModalId(null)}
-          onSave={(id, data) => {
-            console.log('PATCH /reagents/' + id, data);
-          }}
-          onDisuse={(id) => {
-            console.log('POST /reagents/' + id + '/disuse');
-          }}
+          onSave={handleModalSave}
+          onDisuse={handleModalDisuse}
+        />
+      )}
+
+      {/* ── 시약 등록 모달 ── */}
+      {showRegisterModal && (
+        <RegisterModal
+          cabinets={cabinets}
+          activeCabinetId={activeCabId}
+          onClose={() => setShowRegisterModal(false)}
+          onRegister={handleRegister}
+          onBulkRegister={handleBulkRegister}
+        />
+      )}
+
+      {/* ── 시약장 추가 모달 ── */}
+      {showAddCabinetModal && (
+        <AddCabinetModal
+          onClose={() => setShowAddCabinetModal(false)}
+          onCreated={handleCabinetCreated}
         />
       )}
     </div>

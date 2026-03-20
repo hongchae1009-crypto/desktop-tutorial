@@ -6,6 +6,16 @@
 // ── 뷰 모드 ──────────────────────────────────────────────────
 export type ViewMode = 'card' | 'table';
 
+// ── 보관 조건 ─────────────────────────────────────────────────
+export type StorageCondition =
+  | 'RT'      // 실온
+  | '냉장'
+  | '냉동'
+  | '극저온'
+  | '차광'
+  | '위험물'
+  | '불활성';
+
 // ── 시약장 탭 ─────────────────────────────────────────────────
 export interface Cabinet {
   id: string;
@@ -16,11 +26,24 @@ export interface Cabinet {
   isFavorite: boolean;
   displayOrder: number;
   count: number;
+  description?: string;
+  members?: CabinetMember[];
+}
+
+// ── 시약장 멤버 ───────────────────────────────────────────────
+export interface CabinetMember {
+  userId: string;
+  name: string;
+  email: string;
+  initials: string;
+  avatarColor: string;
+  textColor: string;
 }
 
 // ── 시약 (Reagent) ────────────────────────────────────────────
 export interface ReagentItem {
   id: string;            // UUID
+  isFavorite: boolean;
   pinCode: string;       // "K01937" 형식
   customPin?: string;
   compoundName: string;
@@ -28,10 +51,10 @@ export interface ReagentItem {
   smiles?: string;
   casNumber?: string;
   mw?: number;
-  mp?: number;
-  bp?: number;
-  density?: number;
-  purity?: number;
+  mp?: number | string;
+  bp?: number | string;
+  density?: number | string;
+  purity?: number | string;
   location: string;
   quantity: number;
   unit: string;          // "g" | "mL" | "kg" | …
@@ -40,11 +63,18 @@ export interface ReagentItem {
   shopLink?: string;
   labNoteNumber?: string;
   notes?: string;
-  msdsUrl?: string;
+  msdsFile?: string;
   qrUrl?: string;
   cabinetId: string;
+  manager?: string;
   registeredBy: string;
   isActive: boolean;
+  storageConditions?: StorageCondition[];
+  // 참조 시약 관련
+  isReference?: boolean;
+  originId?: string;
+  originCabinetName?: string;
+  referencedIn?: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -119,4 +149,14 @@ export interface QuantTableColumn {
   /** 기본값 1. 그룹 헤더일 때만 2 이상 지정. */
   colSpan: number;
   sortable?: boolean;
+}
+
+// ── AddCabinet 모달 멤버 검색 목 데이터 ─────────────────────
+export interface MockMember {
+  userId: string;
+  name: string;
+  email: string;
+  initials: string;
+  avatarColor: string;
+  textColor: string;
 }
