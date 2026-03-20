@@ -9,12 +9,24 @@ interface ReagentCardProps {
 }
 
 const META_ROWS: Array<{ label: string; getValue: (r: ReagentItem) => string; mono?: boolean }> = [
-  { label: '핀 번호', getValue: (r) => r.pinCode,                 mono: true },
-  { label: 'CAS RN',  getValue: (r) => r.casNumber ?? '—',        mono: true },
+  { label: '핀 번호', getValue: (r) => r.pinCode,                         mono: true },
+  { label: 'CAS RN',  getValue: (r) => r.casNumber ?? '—',                mono: true },
+  { label: 'MW',      getValue: (r) => r.mw != null ? `${r.mw} g/mol` : '—' },
+  { label: '순도',    getValue: (r) => r.purity ?? '—' },
   { label: '위치',    getValue: (r) => r.location },
   { label: '용량',    getValue: (r) => `${r.quantity} ${r.unit}` },
   { label: '공급자',  getValue: (r) => r.supplier ?? '—' },
 ];
+
+const CONDITION_COLORS: Record<string, { bg: string; color: string }> = {
+  'RT':    { bg: '#F0F2F6', color: '#6B7280' },
+  '냉장':  { bg: '#E6F1FB', color: '#185FA5' },
+  '냉동':  { bg: '#E1F5EE', color: '#0F6E56' },
+  '극저온':{ bg: '#EDE9FE', color: '#5B21B6' },
+  '차광':  { bg: '#FAEEDA', color: '#854F0B' },
+  '위험물':{ bg: '#FCEBEB', color: '#A32D2D' },
+  '불활성':{ bg: '#EAF3DE', color: '#3B6D11' },
+};
 
 export default function ReagentCard({ reagent, selected, onSelect, onClick }: ReagentCardProps) {
   return (
@@ -59,6 +71,17 @@ export default function ReagentCard({ reagent, selected, onSelect, onClick }: Re
         />
       </div>
 
+      {/* 참조시약 배지 */}
+      {reagent.isReference && (
+        <div style={{
+          position: 'absolute', top: '8px', left: '8px', zIndex: 2,
+          fontSize: '9px', background: '#FAEEDA', color: '#854F0B',
+          padding: '1px 6px', borderRadius: '6px', fontWeight: 500,
+        }}>
+          참조
+        </div>
+      )}
+
       {/* 컴파운드명 */}
       <div style={{
         padding: '10px 30px 8px 12px',
@@ -72,6 +95,11 @@ export default function ReagentCard({ reagent, selected, onSelect, onClick }: Re
         }}>
           {reagent.compoundName}
         </div>
+        {reagent.alias && (
+          <div style={{ fontSize: '10px', color: 'var(--hint)', marginTop: '2px' }}>
+            {reagent.alias}
+          </div>
+        )}
       </div>
 
       {/* 바디: 구조식 + 메타 */}
@@ -83,28 +111,46 @@ export default function ReagentCard({ reagent, selected, onSelect, onClick }: Re
           flex: 1, padding: '8px 10px',
           display: 'grid',
           gridTemplateColumns: 'auto 1fr',
-          rowGap: '4px', columnGap: '8px',
-          alignContent: 'center',
+          rowGap: '3px', columnGap: '8px',
+          alignContent: 'start',
         }}>
           {META_ROWS.map(({ label, getValue, mono }) => (
-            <>
-              <span key={`l-${label}`} style={{ fontSize: '10px', fontWeight: 500, color: 'var(--hint)', lineHeight: 1.65 }}>
+            <div key={label} style={{ display: 'contents' }}>
+              <span style={{ fontSize: '10px', fontWeight: 500, color: 'var(--hint)', lineHeight: 1.65 }}>
                 {label}
               </span>
-              <span
-                key={`v-${label}`}
-                style={{
-                  fontSize: '11px', color: 'var(--muted)', lineHeight: 1.65,
-                  fontFamily: mono ? "'IBM Plex Mono', monospace" : 'inherit',
-                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                }}
-              >
+              <span style={{
+                fontSize: '11px', color: 'var(--muted)', lineHeight: 1.65,
+                fontFamily: mono ? "'IBM Plex Mono', monospace" : 'inherit',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>
                 {getValue(reagent)}
               </span>
-            </>
+            </div>
           ))}
         </div>
       </div>
+
+      {/* 보관조건 칩 */}
+      {reagent.storageConditions && reagent.storageConditions.length > 0 && (
+        <div style={{
+          display: 'flex', flexWrap: 'wrap', gap: '4px',
+          padding: '6px 10px 8px',
+          borderTop: '1px solid var(--border)',
+        }}>
+          {reagent.storageConditions.map((cond) => {
+            const style = CONDITION_COLORS[cond] ?? { bg: '#F0F2F6', color: '#6B7280' };
+            return (
+              <span key={cond} style={{
+                fontSize: '9px', padding: '1px 6px', borderRadius: '6px',
+                background: style.bg, color: style.color, fontWeight: 500,
+              }}>
+                {cond}
+              </span>
+            );
+          })}
+        </div>
+      )}
     </article>
   );
 }
