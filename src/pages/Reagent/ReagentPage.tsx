@@ -10,6 +10,7 @@
  *   - 선택 ID 집합: Zustand items 에서 파생 (실시간 동기화)
  */
 import { useCallback, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { ReagentItem, RecentSearch, SortState, ViewMode } from '@/types/reagent';
 import { useBasketStore } from '@/store/basketStore';
 import {
@@ -46,6 +47,7 @@ function loadViewMode(): ViewMode {
 function ReagentPageInner() {
   const { showToast } = useToast();
   const basket = useBasketStore();
+  const navigate = useNavigate();
 
   // ── 시약장 탭 ────────────────────────────────────────────────
   const [activeCabId, setActiveCabId] = useState(MOCK_CABINETS[0].id);
@@ -196,12 +198,12 @@ function ReagentPageInner() {
           overflowY: 'auto', padding: '10px 0 20px',
         }}>
           {([
-            { label: '정보', items: [{ icon: '💬', name: '나의질문', active: false, badge: '' }] },
-            { label: '내 연구실', items: [{ icon: '📢', name: '연구실 공지사항', active: false, badge: '' }, { icon: '⚙️', name: '계정정보', active: false, badge: '' }, { icon: '👥', name: '그룹', active: false, badge: '' }, { icon: '📁', name: '프로젝트', active: false, badge: '' }] },
-            { label: '인벤토리', items: [{ icon: '🛒', name: '시약 구매', active: false, badge: '' }, { icon: '📋', name: '구매 현황', active: false, badge: '' }, { icon: '🧪', name: '시약장', active: true, badge: '' }, { icon: '📦', name: '소모품', active: false, badge: '' }, { icon: '🔬', name: '장비', active: false, badge: '' }] },
-            { label: '연구노트', items: [{ icon: '📓', name: '연구노트', active: false, badge: '' }, { icon: '🧫', name: '모아 실험', active: false, badge: '' }, { icon: '📰', name: '랩북 피드', active: false, badge: '11' }] },
-            { label: '커뮤니티', items: [{ icon: '🌐', name: '커뮤니티', active: false, badge: '' }] },
-          ] as Array<{ label: string; items: Array<{ icon: string; name: string; active: boolean; badge: string }> }>).map((section) => (
+            { label: '정보', items: [{ icon: '💬', name: '나의질문', active: false, badge: '', onClick: undefined }] },
+            { label: '내 연구실', items: [{ icon: '📢', name: '연구실 공지사항', active: false, badge: '', onClick: undefined }, { icon: '⚙️', name: '계정정보', active: false, badge: '', onClick: undefined }, { icon: '👥', name: '그룹', active: false, badge: '', onClick: undefined }, { icon: '📁', name: '프로젝트', active: false, badge: '', onClick: undefined }] },
+            { label: '인벤토리', items: [{ icon: '🛒', name: '시약 구매', active: false, badge: '', onClick: undefined }, { icon: '📋', name: '구매 현황', active: false, badge: '', onClick: undefined }, { icon: '🧪', name: '시약장', active: true, badge: '', onClick: undefined }, { icon: '📦', name: '소모품', active: false, badge: '', onClick: undefined }, { icon: '🔬', name: '장비', active: false, badge: '', onClick: undefined }] },
+            { label: '연구노트', items: [{ icon: '📓', name: '연구노트', active: false, badge: '', onClick: undefined }, { icon: '🧫', name: '모아 실험', active: false, badge: '', onClick: () => navigate('/') }, { icon: '📰', name: '랩북 피드', active: false, badge: '11', onClick: undefined }] },
+            { label: '커뮤니티', items: [{ icon: '🌐', name: '커뮤니티', active: false, badge: '', onClick: undefined }] },
+          ] as Array<{ label: string; items: Array<{ icon: string; name: string; active: boolean; badge: string; onClick: (() => void) | undefined }> }>).map((section) => (
             <div key={section.label} style={{ padding: '14px 10px 4px' }}>
               <div style={{ fontSize: '10px', fontWeight: 500, color: 'var(--hint)', textTransform: 'uppercase', letterSpacing: '.06em', padding: '0 8px', marginBottom: '4px' }}>
                 {section.label}
@@ -209,6 +211,7 @@ function ReagentPageInner() {
               {section.items.map((item) => (
                 <div
                   key={item.name}
+                  onClick={item.onClick}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '9px',
                     padding: '7px 8px', borderRadius: 'var(--r)',
@@ -216,7 +219,7 @@ function ReagentPageInner() {
                     color: item.active ? 'var(--blue)' : 'var(--muted)',
                     background: item.active ? 'var(--blue-lt)' : 'transparent',
                     fontWeight: item.active ? 500 : 400,
-                    cursor: 'pointer', transition: 'background .12s, color .12s',
+                    cursor: item.onClick ? 'pointer' : 'default', transition: 'background .12s, color .12s',
                   }}
                 >
                   <span style={{ width: '16px', textAlign: 'center', fontSize: '13px' }}>{item.icon}</span>
