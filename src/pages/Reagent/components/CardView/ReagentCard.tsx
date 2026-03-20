@@ -12,7 +12,7 @@ const META_ROWS: Array<{ label: string; getValue: (r: ReagentItem) => string; mo
   { label: '핀 번호', getValue: (r) => r.pinCode,                         mono: true },
   { label: 'CAS RN',  getValue: (r) => r.casNumber ?? '—',                mono: true },
   { label: 'MW',      getValue: (r) => r.mw != null ? `${r.mw} g/mol` : '—' },
-  { label: '순도',    getValue: (r) => r.purity ?? '—' },
+  { label: '순도',    getValue: (r) => r.purity != null ? String(r.purity) : '—' },
   { label: '위치',    getValue: (r) => r.location },
   { label: '용량',    getValue: (r) => `${r.quantity} ${r.unit}` },
   { label: '공급자',  getValue: (r) => r.supplier ?? '—' },
