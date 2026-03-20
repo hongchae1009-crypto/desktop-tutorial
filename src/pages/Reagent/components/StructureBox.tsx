@@ -15,7 +15,7 @@ const HEIGHTS: Record<NonNullable<StructureBoxProps['variant']>, string> = {
 };
 
 const WIDTHS: Record<NonNullable<StructureBoxProps['variant']>, string> = {
-  card:   '100%',
+  card:   '88px',
   table:  '56px',
   modal:  '100%',
   basket: '100%',
