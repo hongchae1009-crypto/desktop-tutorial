@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(unzip -l files.zip)",
+      "Bash(unzip -o files.zip)",
+      "Bash(unzip -l jinunote-moa.zip)",
+      "Bash(unzip -o jinunote-moa.zip)",
+      "Bash(npm --version)",
+      "Bash(yarn --version)",
+      "Bash(npx --version)",
+      "Bash(where node:*)",
+      "Bash(where npm:*)",
+      "Bash(where python:*)",
+      "Bash(where yarn:*)",
+      "Bash(where npx:*)",
+      "Bash(python -m http.server --help)",
+      "Bash(python -c \"import sys; print\\(sys.version\\)\")",
+      "Bash(cmd /c \"where node & where npm & where python3 & where npx & where yarn & where pnpm\")",
+      "Bash(cmd /c \"node -v 2>&1 & npm -v 2>&1 & npx -v 2>&1 & python --version 2>&1 & python3 --version 2>&1 & yarn --version 2>&1\")",
+      "Bash(powershell -Command \"node -v; npm -v; npx -v; python --version; yarn --version; pnpm --version\")",
+      "mcp__Claude_Preview__preview_start"
+    ]
+  }
+}

@@ -1,0 +1,1649 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Jinunote — 모아 실험</title>
+<style>
+:root {
+  --bg:#ffffff; --bg2:#f7f8fa; --bg3:#f0f1f4;
+  --tx:#1a1c21; --tx2:#4a5060; --tx3:#9099aa;
+  --bd:#e2e4e9; --bd2:#d0d4dc;
+  --blue:#1a6bb5; --blue-bg:#e8f0fa; --blue-bd:#b5d4f4;
+  --green:#1D9E75; --green-bg:#eaf3de; --green-bd:#9FE1CB;
+  --org:#BA7517; --org-bg:#faeeda; --org-bd:#EF9F27;
+  --red:#c0392b; --red-bg:#fcebeb; --red-bd:#fca5a5;
+  --f:'Pretendard','Apple SD Gothic Neo',-apple-system,sans-serif;
+  --fm:'JetBrains Mono','Fira Code',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--f);font-size:12px;color:var(--tx);background:var(--bg3);height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+/* 버튼 */
+.btn{font-family:var(--f);font-size:11px;padding:4px 11px;border-radius:5px;border:0.5px solid var(--bd);background:var(--bg);color:var(--tx);cursor:pointer;display:inline-flex;align-items:center;gap:3px;white-space:nowrap;transition:background .12s;}
+.btn:hover{background:var(--bg2);}
+.btn-p{background:var(--blue);color:#fff;border-color:var(--blue);}.btn-p:hover{background:#155a9a;}
+.btn-d{color:var(--red);border-color:#f5c4b3;}
+.btn-b{color:var(--blue);border-color:var(--blue-bd);}.btn-b:hover{background:var(--blue-bg);}
+.btn-g{color:var(--green);border-color:var(--green-bd);}.btn-g:hover{background:#f0fdf8;}
+/* 토글 */
+.tgl{position:relative;width:28px;height:15px;cursor:pointer;flex-shrink:0;display:inline-block;}
+.tgl input{opacity:0;width:0;height:0;}
+.tgls{position:absolute;inset:0;background:var(--bg2);border:0.5px solid var(--bd2);border-radius:8px;transition:.2s;}
+.tgls::before{content:'';position:absolute;height:9px;width:9px;left:2px;top:2px;background:var(--tx3);border-radius:50%;transition:.2s;}
+.tgl input:checked+.tgls{background:var(--blue);border-color:var(--blue);}
+.tgl input:checked+.tgls::before{transform:translateX(13px);background:#fff;}
+/* 레이아웃 */
+.topbar{height:42px;flex-shrink:0;background:var(--bg);border-bottom:0.5px solid var(--bd);padding:0 18px;display:flex;align-items:center;justify-content:space-between;}
+.btnbar{height:36px;flex-shrink:0;background:var(--bg);border-bottom:0.5px solid var(--bd);padding:0 14px;display:flex;align-items:center;gap:5px;justify-content:flex-end;}
+.logo{font-size:15px;font-weight:600;color:var(--blue);letter-spacing:-.3px;}.logo span{color:var(--tx);}
+.bc{font-size:10px;color:var(--tx3);margin-left:10px;}
+.metabar{height:34px;flex-shrink:0;background:var(--bg);border-bottom:0.5px solid var(--bd);padding:0 18px;display:flex;align-items:center;}
+.mi{display:flex;align-items:center;gap:5px;padding:0 14px;border-right:0.5px solid var(--bd);}
+.mi:first-child{padding-left:0;}.mi:last-child{border-right:none;}
+.ml{font-size:9px;color:var(--tx3);font-weight:500;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;}
+.mv{font-size:12px;font-weight:500;}
+.mi-inp{font-size:12px;padding:2px 6px;border:0.5px solid var(--bd2);border-radius:4px;background:var(--bg2);color:var(--tx);width:130px;font-family:var(--f);outline:none;}
+.mi-inp:focus{border-color:var(--blue);}
+.view{display:none;flex:1;overflow:hidden;flex-direction:column;}
+.view.on{display:flex;}
+/* 목록 뷰 */
+.list-wrap{padding:16px 20px;overflow-y:auto;flex:1;}
+.list-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.list-body{display:flex;flex-direction:column;gap:14px;}
+.list-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+/* 폴더 아이콘 그리드 */
+.folder-bar{margin-bottom:14px;}
+.folder-icons{display:flex;flex-wrap:wrap;gap:8px;}
+.folder-ico{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 10px;border-radius:8px;cursor:pointer;min-width:72px;max-width:90px;border:1.5px solid transparent;transition:background .12s,border-color .12s;}
+.folder-ico:hover{background:var(--blue-bg);}
+.folder-ico.fi-active{background:var(--blue-bg);border-color:var(--blue-bd);}
+.folder-ico.fi-dragging{opacity:.35;border:1.5px dashed var(--bd2);}
+.folder-ico.fi-over{background:#dbeeff;border-color:var(--blue);}
+.folder-ico-img{font-size:30px;line-height:1;filter:drop-shadow(0 1px 2px rgba(0,0,0,.12));}
+.folder-ico-name{font-size:10px;color:var(--tx);text-align:center;line-height:1.3;word-break:break-word;max-width:80px;}
+.fi-active .folder-ico-name{color:var(--blue);font-weight:500;}
+.folder-ico-cnt{font-size:9px;color:var(--tx3);background:var(--bg2);padding:1px 6px;border-radius:8px;}
+.fi-active .folder-ico-cnt{background:#d0e8ff;color:var(--blue);}
+/* 폴더 그룹 제목 (카드 위) */
+.folder-group-hd{font-size:10px;font-weight:500;color:var(--tx2);display:flex;align-items:center;gap:6px;margin:0 0 8px;}
+.folder-group-hd::after{content:'';flex:1;height:0.5px;background:var(--bd2);}
+.mcard{background:var(--bg);border:0.5px solid var(--bd);border-radius:10px;padding:14px 16px;cursor:pointer;transition:border-color .15s,background .15s;}
+.mcard:hover{border-color:var(--blue-bd);background:#f7fbff;}
+.mcard-num{font-size:9px;color:var(--tx3);font-family:var(--fm);margin-bottom:3px;}
+.mcard-title{font-size:13px;font-weight:500;margin-bottom:7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mcard-meta{display:flex;gap:6px;align-items:center;margin-bottom:10px;}
+.stag{font-size:9px;padding:1px 7px;border-radius:8px;border:0.5px solid;}
+.s-draft{background:#f2f3f5;color:#888;border-color:#ccc;}
+.s-active{background:var(--blue-bg);color:var(--blue);border-color:var(--blue-bd);}
+.s-done{background:var(--green-bg);color:#3B6D11;border-color:var(--green-bd);}
+.mcard-stats{display:flex;gap:10px;align-items:center;border-top:0.5px solid var(--bd);padding-top:8px;}
+.stat{display:flex;flex-direction:column;gap:1px;}
+.stat-l{font-size:8px;color:var(--tx3);}
+.stat-v{font-size:12px;font-weight:500;}
+.stat-best{font-size:12px;font-weight:500;color:var(--green);}
+.mini-bars{flex:1;}
+.mini-row{display:flex;align-items:center;gap:4px;margin-bottom:2px;}
+.mini-l{font-size:8px;color:#999;width:30px;overflow:hidden;text-overflow:ellipsis;}
+.mini-tr{flex:1;height:6px;background:#eee;border-radius:2px;overflow:hidden;}
+.mini-f{height:100%;border-radius:2px;}
+/* 상세 뷰 */
+.detail-wrap{display:flex;flex:1;overflow:hidden;}
+.sidebar{width:160px;flex-shrink:0;background:var(--bg);border-right:0.5px solid var(--bd);padding:6px 0;overflow-y:auto;}
+.stitle{font-size:9px;color:var(--tx3);font-weight:500;letter-spacing:.5px;text-transform:uppercase;padding:7px 12px 2px;}
+.si{padding:5px 12px;font-size:11px;color:var(--tx2);cursor:pointer;transition:background .1s;}
+.si:hover{background:var(--bg2);}
+.si.on{background:var(--blue-bg);color:var(--blue);font-weight:500;border-left:2px solid var(--blue);padding-left:10px;}
+.main{flex:1;min-width:0;padding:10px 14px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;overflow-x:hidden;}
+.card{background:var(--bg);border:0.5px solid var(--bd);border-radius:8px;overflow:hidden;flex-shrink:0;}
+.ch{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;border-bottom:0.5px solid var(--bd);}
+.ct{font-size:9px;font-weight:500;color:var(--tx2);text-transform:uppercase;letter-spacing:.5px;}
+/* 스킴 */
+.sb{display:flex;align-items:center;justify-content:center;gap:18px;padding:10px 32px;}
+.cbox{text-align:center;}
+.cl{font-size:20px;font-weight:500;color:var(--blue);line-height:1;}.clE{color:var(--org);}
+.cm{font-size:9px;color:var(--tx3);margin-top:2px;}
+.cplus{font-size:14px;color:var(--tx3);padding-bottom:11px;}
+.aw{flex:1;max-width:180px;}.al{height:1.5px;background:var(--tx);position:relative;}
+.al::after{content:'';position:absolute;right:-1px;top:-3.5px;border-left:7px solid var(--tx);border-top:4px solid transparent;border-bottom:4px solid transparent;}
+.cprod{background:var(--blue-bg);border:0.5px solid var(--blue-bd);border-radius:8px;padding:7px 16px;text-align:center;}
+.cprod-l{font-size:20px;font-weight:500;color:var(--blue);}
+.vbadge{font-size:8px;background:var(--org-bg);color:#633806;border:0.5px solid var(--org-bd);border-radius:3px;padding:1px 5px;display:inline-block;margin-bottom:2px;}
+/* 테이블 */
+.tbl-wrap{overflow-x:auto;}
+table{border-collapse:collapse;font-size:10px;white-space:nowrap;}
+th,td{border:0.5px solid var(--bd2);}
+.inp{padding:2px 4px;border:0.5px solid var(--bd2);border-radius:3px;background:transparent;color:var(--tx);font-size:10px;text-align:right;font-family:var(--f);outline:none;}
+.inp:focus{border-color:var(--blue);background:#f5f9ff;}
+.inp-k{width:66px;font-size:11px;font-weight:500;}
+.inp-id{width:56px;text-align:center;font-weight:500;}
+.inp-mmol{width:62px;}
+.inp-eq{width:40px;}
+.ro{color:var(--tx2);font-size:10px;}
+.eq1{color:#bbb;font-size:10px;font-style:italic;}
+.dok{font-size:8px;padding:1px 3px;border-radius:2px;background:var(--green-bg);color:#3B6D11;margin-left:2px;}
+.dwarn{font-size:8px;padding:1px 3px;border-radius:2px;background:var(--org-bg);color:#633806;margin-left:2px;}
+.derr{font-size:8px;padding:1px 3px;border-radius:2px;background:var(--red-bg);color:#A32D2D;margin-left:2px;}
+.cwarn{background:#fff8ee !important;}.cerr{background:#fff0f0 !important;}
+/* 삭제버튼: absolute로 id 셀 위에 겹침 → 테이블 크기 불변 */
+.id-cell{position:relative;text-align:center;vertical-align:middle;padding:4px 6px;background:#f7f8fa;}
+.del-row-btn{display:none;position:absolute;top:50%;right:2px;transform:translateY(-50%);width:14px;height:14px;border-radius:50%;background:#fee2e2;border:0.5px solid var(--red-bd);color:var(--red);font-size:9px;cursor:pointer;align-items:center;justify-content:center;padding:0;line-height:1;z-index:1;}
+tr:hover .del-row-btn{display:flex;}
+.del-col-btn{display:inline-flex;align-items:center;justify-content:center;width:12px;height:12px;border-radius:50%;background:#fee2e2;border:0.5px solid var(--red-bd);color:var(--red);font-size:8px;cursor:pointer;margin-left:3px;vertical-align:middle;}
+.rcell{display:flex;align-items:center;gap:5px;}
+.rname-wrap{display:flex;flex-direction:column;overflow:hidden;flex:1;min-width:0;}
+.rname{font-size:10px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.rname.empty{color:#bbb;font-style:italic;font-weight:400;}
+.rsub{font-size:8px;color:#bbb;font-family:var(--fm);margin-top:1px;}
+.sbtn{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:3px;border:0.5px solid var(--bd2);background:var(--bg2);cursor:pointer;color:#888;flex-shrink:0;}
+.sbtn:hover{background:var(--blue-bg);color:var(--blue);}
+.base-radio{width:13px;height:13px;cursor:pointer;accent-color:var(--blue);flex-shrink:0;}
+.com-sub{font-size:8px;opacity:.6;font-weight:400;font-style:italic;display:block;margin-top:1px;}
+/* 실험기록 탭 */
+.rec-panel{border-top:0.5px solid var(--bd);}
+.rec-phd{display:flex;align-items:center;justify-content:space-between;padding:5px 12px 0;background:var(--bg2);}
+.rec-tabs{display:flex;background:var(--bg2);border-bottom:0.5px solid var(--bd);overflow-x:auto;}
+.rec-tab{padding:6px 12px;font-size:10px;cursor:pointer;color:var(--tx3);white-space:nowrap;border-bottom:2px solid transparent;margin-bottom:-.5px;flex-shrink:0;}
+.rec-tab:hover{color:var(--tx);}
+.rec-tab.on{color:var(--blue);font-weight:500;border-bottom-color:var(--blue);background:var(--bg);}
+.rec-body{padding:8px 12px;}
+.rec-ta{width:100%;border:0.5px solid var(--bd);background:var(--bg2);border-radius:5px;resize:none;font-size:11px;color:var(--tx);font-family:var(--f);outline:none;line-height:1.7;padding:7px 10px;min-height:64px;}
+.rec-ta:focus{border-color:var(--blue);background:var(--bg);}
+.rec-ta::placeholder{color:var(--tx3);}
+/* 결과 */
+.res-card{background:var(--bg);border:0.5px solid var(--bd);border-radius:8px;flex-shrink:0;overflow:hidden;}
+.res-body{display:grid;grid-template-columns:1fr 240px;}
+.res-tbl{overflow-x:auto;border-right:0.5px solid var(--bd);}
+.res-tbl table{width:100%;font-size:10px;border-collapse:collapse;}
+.rth{background:var(--bg2);padding:5px 8px;border-bottom:0.5px solid var(--bd2);font-size:9px;color:#999;font-weight:500;text-align:left;white-space:nowrap;vertical-align:middle;}
+.rtd{padding:5px 8px;border-bottom:0.5px solid var(--bd2);vertical-align:middle;font-size:10px;}
+.rinp{padding:3px 4px;border:0.5px solid var(--bd2);border-radius:3px;background:transparent;color:var(--tx);font-size:10px;text-align:right;font-family:var(--f);outline:none;}
+.rinp:focus{border-color:var(--blue);}
+.rsel{padding:3px 4px;border:0.5px solid var(--bd2);border-radius:3px;background:transparent;color:var(--tx);font-size:10px;font-family:var(--f);outline:none;}
+.del-res-col{display:inline-flex;align-items:center;justify-content:center;width:12px;height:12px;border-radius:50%;background:#fee2e2;border:0.5px solid var(--red-bd);color:var(--red);font-size:8px;cursor:pointer;margin-left:3px;vertical-align:middle;}
+.add-col-row{display:flex;align-items:center;gap:4px;padding:5px 10px;font-size:10px;color:var(--blue);cursor:pointer;background:var(--bg2);border-top:0.5px solid var(--bd);}
+/* 실험 조건 */
+.cond-field{display:flex;flex-direction:column;gap:3px;}
+.cond-lbl{font-size:9px;color:var(--tx3);font-weight:500;white-space:nowrap;}
+.cond-inp{padding:3px 6px;border:0.5px solid var(--bd2);border-radius:3px;background:var(--bg);color:var(--tx);font-size:11px;font-family:var(--f);outline:none;transition:border-color .12s;}
+.cond-inp:focus{border-color:var(--blue);}
+.cond-sel{padding:3px 6px;border:0.5px solid var(--bd2);border-radius:3px;background:var(--bg);color:var(--tx);font-size:11px;font-family:var(--f);outline:none;}
+.cond-unit{font-size:10px;color:var(--tx3);flex-shrink:0;}
+.cond-grp-lbl{font-size:9px;color:var(--tx3);font-weight:500;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+/* 대시보드 */
+.dash-kpi{background:var(--bg2);border:0.5px solid var(--bd);border-radius:7px;padding:10px 14px;}
+.dash-kpi-l{font-size:9px;color:var(--tx3);font-weight:500;text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px;}
+.dash-kpi-v{font-size:20px;font-weight:600;line-height:1.1;}
+.dash-kpi-sub{font-size:9px;color:var(--tx3);margin-top:2px;}
+.dash-bar-row{display:flex;align-items:center;gap:8px;padding:6px 8px;border-bottom:0.5px solid var(--bd);}
+.dash-bar-lbl{font-size:10px;color:var(--tx2);width:44px;flex-shrink:0;}
+.dash-bar-track{flex:1;height:14px;background:var(--bg2);border-radius:4px;overflow:visible;position:relative;border:0.5px solid var(--bd);}
+.dash-bar-fill{height:100%;border-radius:3px;transition:width .3s;}
+.dash-bar-val{font-size:10px;width:44px;text-align:right;flex-shrink:0;font-weight:500;}
+.dash-th{background:var(--bg2);padding:5px 8px;border-bottom:0.5px solid var(--bd2);font-size:9px;color:var(--tx3);font-weight:500;text-align:left;white-space:nowrap;}
+.dash-td{padding:6px 8px;border-bottom:0.5px solid var(--bd);font-size:10px;vertical-align:middle;}
+/* 대시보드 노트 */
+.dash-note-ta{width:100%;min-height:72px;padding:8px 10px;border:0.5px solid var(--bd2);border-radius:5px;font-size:11px;font-family:var(--f);color:var(--tx);background:var(--bg2);resize:vertical;outline:none;line-height:1.6;}
+.dash-note-ta:focus{border-color:var(--blue);background:var(--bg);}
+.dash-note-imgs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
+.dash-note-img{position:relative;width:80px;height:80px;border-radius:5px;overflow:hidden;border:0.5px solid var(--bd);cursor:pointer;}
+.dash-note-img img{width:100%;height:100%;object-fit:cover;}
+.dash-note-img-x{position:absolute;top:2px;right:2px;width:14px;height:14px;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;font-size:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;line-height:1;}
+.dash-note-file{position:relative;display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border:0.5px solid var(--bd2);border-radius:4px;font-size:10px;color:var(--tx2);background:var(--bg2);cursor:pointer;}
+.dash-note-file:hover{border-color:var(--blue-bd);color:var(--blue);}
+.dash-note-file input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;}
+.add-side-btn{visibility:hidden;font-size:9px;color:#1a6bb5;background:none;border:0.5px solid #b5d4f4;border-radius:3px;padding:1px 5px;cursor:pointer;font-family:inherit;margin-top:3px;white-space:nowrap}
+tr.res-main-row:hover .add-side-btn{visibility:visible}
+.ysum{font-size:8px;color:#1D9E75;font-weight:600;margin-top:2px;display:none}
+.res-side-row td{background:#f7f8fc}
+.side-label{font-size:9px;color:#888;font-style:italic;padding-left:10px;display:flex;align-items:center;gap:4px}
+.side-del-btn{font-size:10px;color:#c0392b;background:none;border:none;cursor:pointer;padding:0;font-family:inherit;line-height:1;margin-left:auto}
+.add-col-row:hover{background:var(--blue-bg);}
+.cpd-cell{display:flex;align-items:center;gap:4px;}
+.cpd-name{font-size:10px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px;}
+.cpd-name.empty{color:#bbb;font-style:italic;font-weight:400;}
+.cpd-sub{font-size:8px;color:#bbb;font-family:var(--fm);margin-top:1px;}
+.mmol-auto{color:var(--tx2);font-size:10px;}
+.mmol-auto.has{color:var(--blue);font-weight:500;}
+.reg-badge{display:inline-flex;align-items:center;gap:3px;font-size:8px;padding:1px 5px;border-radius:3px;background:#e2f7ee;color:var(--green);border:0.5px solid var(--green-bd);}
+.btn-reg{color:var(--green);border-color:var(--green-bd);background:#f0fdf8;}.btn-reg:hover{background:#e2f7ee;}
+/* 첨부 */
+.att-wrap{display:flex;flex-direction:column;gap:4px;}
+.att-files{display:flex;flex-wrap:wrap;gap:4px;align-items:center;}
+.att-tag{display:inline-flex;align-items:center;gap:3px;font-size:9px;padding:2px 7px;border-radius:3px;background:var(--blue-bg);color:var(--blue);border:0.5px solid var(--blue-bd);cursor:pointer;max-width:160px;}
+.att-tag:hover{background:#ddeeff;}
+.att-thumb{width:14px;height:14px;border-radius:2px;object-fit:cover;flex-shrink:0;}
+.att-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px;}
+.att-x{cursor:pointer;color:#888;margin-left:1px;}.att-x:hover{color:var(--red);}
+.att-add{display:inline-flex;align-items:center;gap:3px;font-size:9px;padding:2px 7px;border-radius:4px;border:0.5px solid var(--bd);background:var(--bg2);color:var(--tx2);cursor:pointer;}
+.att-add:hover{background:var(--blue-bg);color:var(--blue);border-color:var(--blue-bd);}
+/* 차트 */
+.chart-panel{padding:12px 14px;display:flex;flex-direction:column;gap:5px;}
+.chart-ttl{font-size:9px;color:var(--tx3);font-weight:500;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;}
+.bar-row{display:flex;align-items:center;gap:6px;margin-bottom:5px;}
+.bar-lbl{font-size:9px;width:42px;flex-shrink:0;font-weight:500;overflow:hidden;text-overflow:ellipsis;color:#555;}
+.bar-track{flex:1;height:12px;background:#eee;border-radius:3px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:3px;transition:width .4s ease;}
+.bar-val{font-size:9px;color:#999;width:30px;text-align:right;flex-shrink:0;}
+.best-box{margin-top:6px;padding-top:7px;border-top:0.5px solid var(--bd);}
+/* 댓글 */
+.cmt-card{background:var(--bg);border:0.5px solid var(--bd);border-radius:8px;flex-shrink:0;overflow:hidden;}
+.cmt-list{padding:10px 14px;display:flex;flex-direction:column;gap:10px;max-height:180px;overflow-y:auto;}
+.cmt-item{display:flex;gap:8px;}
+.avatar{width:26px;height:26px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;}
+.cmt-bubble{flex:1;background:var(--bg2);border-radius:7px;padding:7px 10px;}
+.cmt-meta{display:flex;align-items:baseline;gap:6px;margin-bottom:3px;}
+.cmt-author{font-size:10px;font-weight:500;}
+.cmt-time{font-size:9px;color:var(--tx3);}
+.cmt-text{font-size:11px;line-height:1.6;}
+.cmt-acts{display:flex;gap:8px;margin-top:4px;}
+.cact{font-size:9px;color:var(--tx3);cursor:pointer;}.cact:hover{color:var(--blue);}
+.cmt-ia{padding:8px 14px;border-top:0.5px solid var(--bd);display:flex;gap:8px;align-items:flex-end;}
+.cmt-inp{flex:1;border:0.5px solid var(--bd);border-radius:6px;padding:6px 10px;font-size:11px;font-family:var(--f);color:var(--tx);background:var(--bg2);resize:none;outline:none;line-height:1.5;min-height:34px;max-height:80px;}
+.cmt-inp:focus{border-color:var(--blue);background:var(--bg);}
+.cmt-inp::placeholder{color:var(--tx3);}
+/* 메모 */
+.memo-card{background:var(--bg);border:0.5px solid var(--bd);border-radius:8px;flex-shrink:0;overflow:hidden;}
+.memo-hd{display:flex;align-items:center;justify-content:space-between;padding:5px 12px;cursor:pointer;}
+.memo-hd:hover{background:var(--bg2);}
+.memo-bd{padding:8px 12px;border-top:0.5px solid var(--bd);}
+.memo-ta{width:100%;border:0.5px solid var(--bd);background:var(--bg2);border-radius:5px;resize:none;font-size:10px;color:var(--tx);font-family:var(--f);outline:none;line-height:1.6;padding:6px 10px;height:44px;}
+.memo-ta::placeholder{color:var(--tx3);}
+/* 전자서명 */
+.sig-card{background:var(--bg);border:0.5px solid var(--bd);border-radius:8px;flex-shrink:0;overflow:hidden;}
+.sig-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:500;}
+.sig-unsigned{background:#f0f0f0;color:#888;}
+.sig-signed{background:#e6f7f1;color:#1D9E75;}
+.sig-locked{background:#e8f0fb;color:#1a6bb5;}
+.sig-body{padding:12px 14px;display:flex;flex-direction:column;gap:10px;}
+.sig-preview{min-height:60px;border:1px dashed var(--bd2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:'Georgia',serif;font-style:italic;font-size:28px;color:#555;background:var(--bg2);}
+.sig-info-row{display:flex;flex-wrap:wrap;gap:14px;}
+.sig-info-item{display:flex;flex-direction:column;gap:1px;}
+.sig-info-label{font-size:9px;color:var(--tx3);}
+.sig-info-val{font-size:10px;color:var(--tx);}
+.sig-hash{font-family:var(--fm);font-size:9px;color:var(--tx3);word-break:break-all;background:var(--bg2);padding:5px 8px;border-radius:4px;border:0.5px solid var(--bd);}
+.sig-actions{display:flex;gap:6px;}
+/* 변경이력 */
+.hist-card{background:var(--bg);border:0.5px solid var(--bd);border-radius:8px;flex-shrink:0;overflow:hidden;}
+.hist-hd{display:flex;align-items:center;justify-content:space-between;padding:5px 12px;cursor:pointer;}
+.hist-hd:hover{background:var(--bg2);}
+.hist-list{padding:10px 14px;display:flex;flex-direction:column;gap:8px;border-top:0.5px solid var(--bd);max-height:240px;overflow-y:auto;}
+.hist-item{display:flex;gap:8px;align-items:flex-start;}
+.hist-dot{width:7px;height:7px;border-radius:50%;margin-top:3px;flex-shrink:0;}
+.hist-meta{font-size:9px;color:var(--tx3);margin-bottom:2px;}
+.hist-desc{font-size:10px;color:var(--tx);}
+.hist-tag{display:inline-block;padding:1px 6px;border-radius:8px;font-size:8px;font-weight:500;margin-left:4px;vertical-align:middle;}
+.htag-create{background:#e8f0fb;color:#1a6bb5;}
+.htag-edit{background:#fff8e6;color:#b07d00;}
+.htag-sign{background:#e6f7f1;color:#1D9E75;}
+/* 모달 */
+.mo-ov{position:fixed;inset:0;background:rgba(0,0,0,.32);display:flex;align-items:center;justify-content:center;z-index:9998;}
+.mo-box{background:var(--bg);border:0.5px solid var(--bd2);border-radius:10px;padding:16px;width:380px;box-shadow:0 8px 32px rgba(0,0,0,.12);}
+.mo-sm{width:280px;}
+.mo-title{font-size:12px;font-weight:500;margin-bottom:10px;}
+.mo-inp{width:100%;padding:6px 10px;border:0.5px solid var(--bd2);border-radius:6px;font-size:11px;font-family:var(--f);color:var(--tx);background:var(--bg2);margin-bottom:8px;outline:none;}
+.mo-inp:focus{border-color:var(--blue);}
+.mo-list{max-height:170px;overflow-y:auto;border:0.5px solid #e0e0e0;border-radius:5px;}
+.mo-item{padding:6px 10px;font-size:10px;cursor:pointer;border-bottom:0.5px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center;}
+.mo-item:last-child{border-bottom:none;}
+.mo-item:hover{background:var(--blue-bg);color:var(--blue);}
+.mo-pin{font-family:var(--fm);font-size:9px;color:#aaa;}
+.mo-label{font-size:10px;color:var(--tx2);font-weight:500;margin-bottom:4px;margin-top:8px;}
+.mo-foot{display:flex;justify-content:flex-end;gap:6px;margin-top:10px;}
+/* 미리보기 */
+.prev-ov{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;z-index:9999;}
+.prev-box{background:var(--bg);border-radius:10px;overflow:hidden;width:860px;max-width:92vw;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+.prev-hd{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:0.5px solid var(--bd);flex-shrink:0;}
+.prev-ttl{font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.prev-close{width:24px;height:24px;border-radius:50%;background:var(--bg2);border:0.5px solid var(--bd);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;}
+.prev-close:hover{background:#fee2e2;color:var(--red);}
+.prev-bd{flex:1;overflow:auto;padding:16px;display:flex;align-items:center;justify-content:center;background:#f0f1f3;min-height:300px;}
+.prev-bd img{max-width:100%;max-height:65vh;border-radius:4px;object-fit:contain;}
+.prev-ft{padding:8px 16px;border-top:0.5px solid var(--bd);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.pnav{display:flex;gap:6px;}
+.pnav-btn{padding:3px 10px;border-radius:4px;border:0.5px solid var(--bd);background:var(--bg2);font-size:10px;cursor:pointer;font-family:var(--f);}
+.pnav-btn:hover{background:var(--blue-bg);color:var(--blue);}
+.pnav-btn:disabled{opacity:.4;cursor:not-allowed;}
+/* undo */
+.undo-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(10px);background:#2a2d35;color:#fff;font-size:11px;padding:8px 18px;border-radius:20px;display:flex;align-items:center;gap:12px;z-index:9997;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;font-family:var(--f);}
+.undo-toast.on{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto;}
+.undo-btn{font-size:11px;color:#7dd3fc;cursor:pointer;font-weight:500;}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:#d0d4dc;border-radius:2px;}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div style="display:flex;align-items:center">
+    <div class="logo">Jinu<span>note</span></div>
+    <div class="bc" id="bc">홈 / 모아 실험</div>
+  </div>
+</div>
+<!-- BODY WRAP -->
+<div style="flex:1;display:flex;overflow:hidden">
+
+<!-- SNB -->
+<div class="sidebar">
+  <div class="stitle">내 연구실</div><div class="si">연구실 공지사항</div><div class="si">계정정보</div><div class="si">그룹</div><div class="si">프로젝트</div>
+  <div class="stitle">인벤토리</div><div class="si">시약 구매</div><div class="si">구매 현황</div><div class="si">시약장</div><div class="si">소모품</div><div class="si">장비</div>
+  <div class="stitle">연구노트</div><div class="si">연구노트</div><div class="si on">모아 실험</div><div class="si">랩북 피드</div>
+</div>
+
+<!-- RIGHT PANEL -->
+<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0">
+
+<!-- BUTTON BARS -->
+<div class="btnbar" id="bb-list">
+  <button class="btn btn-p" onclick="goDetail()">+ 새 모아 실험</button>
+</div>
+<div class="btnbar" id="bb-detail" style="display:none">
+  <button class="btn btn-b" id="b-back" onclick="goList()">← 목록</button>
+  <button class="btn" id="b-print"><svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="3" y="1" width="10" height="8" rx="1" stroke="currentColor" stroke-width="1.3"/><rect x="1" y="6" width="14" height="7" rx="1" stroke="currentColor" stroke-width="1.3"/><rect x="5" y="10" width="6" height="4" rx="0.5" fill="currentColor" opacity="0.25"/></svg>프린트</button>
+  <button class="btn" id="b-share"><svg width="12" height="12" viewBox="0 0 16 16" fill="none"><circle cx="12" cy="4" r="2" stroke="currentColor" stroke-width="1.3"/><circle cx="4" cy="8" r="2" stroke="currentColor" stroke-width="1.3"/><circle cx="12" cy="12" r="2" stroke="currentColor" stroke-width="1.3"/><path d="M6 7l4-2M6 9l4 2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>공유</button>
+  <button class="btn" id="b-import">연구노트 가져오기</button>
+  <button class="btn btn-p" id="b-save" onclick="updateLastMod()">저장</button>
+  <button class="btn btn-g" id="b-close" onclick="confirmClose()">종료</button>
+  <button class="btn btn-d" id="b-del">삭제</button>
+</div>
+
+<!-- METABARS -->
+<div class="metabar" id="mb-list">
+  <div class="mi"><span class="ml">연구노트</span><span class="mv">모아 실험 목록</span></div>
+  <div class="mi"><span class="ml">프로젝트</span><span class="mv">2026 Piperazine</span></div>
+  <div class="mi"><span class="ml">총 실험</span><span class="mv">4건</span></div>
+</div>
+<div class="metabar" id="mb-detail" style="display:none">
+  <div class="mi"><span class="ml">실험번호</span><span class="mv">MB-PRI-HCE-2026-00001</span></div>
+  <div class="mi"><span class="ml">실험명</span><input class="mi-inp" value="HCE-260309"/></div>
+  <div class="mi"><span class="ml">프로젝트</span><input class="mi-inp" value="2026 Piperazine"/></div>
+  <div class="mi"><span class="ml">작성자</span><span class="mv">제은</span></div>
+  <div class="mi"><span class="ml">생성일</span><span class="mv">2026-03-09</span></div>
+  <div class="mi"><span class="ml">마지막수정일</span><span class="mv" id="mb-lastmod">—</span></div>
+</div>
+
+<!-- LIST VIEW -->
+<div class="view on" id="v-list">
+  <div class="list-wrap">
+    <div class="list-hd">
+      <h2 style="font-size:14px;font-weight:600">모아 실험 목록</h2>
+      <div style="display:flex;gap:6px;align-items:center">
+        <input id="list-search" style="padding:5px 10px;border:0.5px solid var(--bd2);border-radius:5px;font-size:11px;background:var(--bg2);color:var(--tx);width:210px;outline:none;font-family:var(--f)" placeholder="실험명 또는 번호 검색..." oninput="filterCards()"/>
+        <button class="btn" id="stf-all" onclick="setStatusFilter('all')" style="background:var(--blue-bg);border-color:var(--blue-bd);color:var(--blue)">전체</button>
+        <button class="btn" id="stf-active" onclick="setStatusFilter('active')">진행 중</button>
+        <button class="btn" id="stf-done" onclick="setStatusFilter('done')">완료</button>
+      </div>
+    </div>
+    <div class="list-body">
+      <!-- 폴더 아이콘 영역 -->
+      <div class="folder-bar">
+        <div class="folder-icons" id="folder-panel"></div>
+      </div>
+      <!-- 카드 영역 -->
+      <div id="list-card-area"></div>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL VIEW -->
+<div class="view" id="v-detail">
+  <div class="main">
+    <!-- SCHEME -->
+    <div class="card">
+      <div class="ch"><span class="ct">Scheme</span><button class="btn" style="font-size:10px;padding:3px 8px">편집</button></div>
+      <div class="sb">
+        <div class="cbox"><div class="vbadge">변수</div><div class="cl clE">E</div><div class="cm">실험별 상이</div></div>
+        <div class="cplus">+</div><div class="cbox"><div class="cl">A</div><div class="cm">기준 mmol</div></div>
+        <div class="cplus">+</div><div class="cbox"><div class="cl">B</div><div class="cm">x mmol</div></div>
+        <div class="cplus">+</div><div class="cbox"><div class="cl">C</div><div class="cm">x mmol</div></div>
+        <div class="aw" style="margin:0 12px"><div class="al"></div></div>
+        <div class="cprod"><div class="cprod-l">F</div></div>
+      </div>
+    </div>
+
+    <!-- 시작물질/반응물 -->
+    <div class="card" style="overflow:visible">
+      <div class="ch">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="ct">시작물질/반응물</span>
+          <span style="font-size:9px;color:#999;font-style:italic">⭐기준물질 선택 (1개) 후 mmol 입력, 다른 물질은 eq 기준 mmol·weight(mg) 자동계산됨. 오차 <span style="color:#BA7517">■</span>±5~10% <span style="color:#c0392b">■</span>&gt;10%</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:7px">
+          <button class="btn btn-b" onclick="addExpRow()"><svg width="10" height="10" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#1a6bb5" stroke-width="1.4"/><path d="M8 5v6M5 8h6" stroke="#1a6bb5" stroke-width="1.5" stroke-linecap="round"/></svg>실험 추가</button>
+          <button class="btn btn-g" onclick="addComCol()"><svg width="10" height="10" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#1D9E75" stroke-width="1.4"/><path d="M8 5v6M5 8h6" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round"/></svg>공통시약 추가</button>
+          <div style="width:1px;height:15px;background:var(--bd)"></div>
+          <span style="font-size:9px;color:var(--tx2)">참고값</span>
+          <label class="tgl"><input type="checkbox" id="ref-chk" checked onchange="toggleRef(this.checked)"><span class="tgls"></span></label>
+        </div>
+      </div>
+      <div class="tbl-wrap"><table><thead id="TH"></thead><tbody id="TB"></tbody></table></div>
+    </div>
+
+    <!-- 실험 조건 -->
+    <div class="card">
+      <div class="ch"><span class="ct">실험 조건</span></div>
+      <div style="padding:12px 16px">
+        <div style="display:flex;flex-wrap:wrap;gap:10px 22px;align-items:flex-end">
+          <div class="cond-field">
+            <div class="cond-lbl">반응 온도</div>
+            <div style="display:flex;align-items:center;gap:4px">
+              <input class="cond-inp" id="cond-temp" style="width:58px" placeholder="—" oninput="expCond.temp=this.value"/>
+              <span class="cond-unit">°C</span>
+            </div>
+          </div>
+          <div class="cond-field">
+            <div class="cond-lbl">반응 시간</div>
+            <div style="display:flex;align-items:center;gap:4px">
+              <input class="cond-inp" id="cond-time" style="width:58px" placeholder="—" oninput="expCond.time=this.value"/>
+              <span class="cond-unit">h</span>
+            </div>
+          </div>
+          <div class="cond-field">
+            <div class="cond-lbl">대기 조건</div>
+            <select class="cond-sel" id="cond-atm" onchange="expCond.atm=this.value">
+              <option value="">선택</option>
+              <option>N₂</option><option>Ar</option><option>Air</option><option>진공</option>
+            </select>
+          </div>
+          <div class="cond-field">
+            <div class="cond-lbl">용매</div>
+            <div style="display:flex;align-items:center;gap:4px">
+              <select class="cond-sel" id="cond-solv" onchange="expCond.solvent=this.value;document.getElementById('cond-solv-txt').value=this.value">
+                <option value="">선택</option>
+                <option>THF</option><option>DCM</option><option>DMF</option><option>Toluene</option><option>EtOH</option><option>MeCN</option><option>H₂O</option>
+              </select>
+              <input class="cond-inp" id="cond-solv-txt" style="width:72px" placeholder="직접 입력" oninput="expCond.solventCustom=this.value"/>
+            </div>
+          </div>
+          <div class="cond-field">
+            <div class="cond-lbl">용매 용량</div>
+            <div style="display:flex;align-items:center;gap:4px">
+              <input class="cond-inp" id="cond-vol" style="width:58px" placeholder="—" oninput="expCond.solventVol=this.value;updateCondScale()"/>
+              <span class="cond-unit">mL</span>
+            </div>
+          </div>
+          <div class="cond-field">
+            <div class="cond-lbl">농도 <span style="color:var(--blue);font-size:8px">자동</span></div>
+            <div style="display:flex;align-items:center;gap:4px">
+              <span class="mmol-auto" id="cond-conc" style="min-width:52px;text-align:right">—</span>
+              <span class="cond-unit">M</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 실험 기록 -->
+    <div class="card">
+      <div class="rec-panel" style="border-top:none">
+        <div class="rec-phd">
+          <span style="font-size:9px;font-weight:500;color:var(--tx2);text-transform:uppercase;letter-spacing:.5px">실험 기록</span>
+          <span style="font-size:9px;color:var(--tx3)">공통 + 실험번호별 개별 기록</span>
+        </div>
+        <div class="rec-tabs" id="rec-tabs"></div>
+        <div class="rec-body"><textarea class="rec-ta" id="rec-ta" rows="3" oninput="onRecInput()"></textarea></div>
+      </div>
+    </div>
+
+    <!-- 실험결과 -->
+    <div class="res-card">
+      <div class="ch">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="ct">실험 결과</span>
+          <span style="font-size:9px;color:#999;font-style:italic">화합물명 🔍 → MW 연동 → 수득량 입력 시 mmol 자동계산</span>
+        </div>
+        <button class="btn btn-reg" onclick="openRegModal(null)">
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="#1D9E75" stroke-width="1.3"/><path d="M8 5v6M5 8h6" stroke="#1D9E75" stroke-width="1.4" stroke-linecap="round"/></svg>
+          시약 등록
+        </button>
+      </div>
+      <div class="res-tbl"><table><thead><tr id="res-head"></tr></thead><tbody id="RB"></tbody></table></div>
+    </div>
+
+    <!-- 실험 대시보드 -->
+    <div class="card" id="dashboard-card">
+      <div class="ch"><span class="ct">실험 대시보드</span></div>
+      <div style="padding:12px 14px;display:flex;flex-direction:column;gap:16px">
+        <!-- 섹션 1: 요약 KPI -->
+        <div id="dash-summary" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px"></div>
+        <!-- 섹션 2+3: 테이블 + 바 차트 -->
+        <div style="display:flex;gap:16px;align-items:flex-start">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:9px;font-weight:500;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">변수시약 vs 결과</div>
+            <table id="dash-table" style="width:100%;border-collapse:collapse"></table>
+          </div>
+          <div style="width:220px;flex-shrink:0">
+            <div style="font-size:9px;font-weight:500;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;padding:5px 8px;background:var(--bg2);border-bottom:0.5px solid var(--bd2)">Yield 비교</div>
+            <div id="dash-bars"></div>
+          </div>
+        </div>
+        <!-- 노트 -->
+        <div style="border-top:0.5px solid var(--bd);padding-top:14px">
+          <div style="font-size:9px;font-weight:500;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">노트</div>
+          <div class="dash-note-imgs" id="dash-note-imgs"></div>
+          <textarea class="dash-note-ta" id="dash-note-ta" placeholder="의견, 관찰 사항, 다음 실험 방향 등을 자유롭게 작성하세요..." oninput="dashNote.text=this.value"></textarea>
+          <div style="margin-top:6px">
+            <label class="dash-note-file">
+              <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M8 3v10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              이미지 첨부
+              <input type="file" accept="image/*" multiple onchange="addDashNoteFiles(this)"/>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 댓글 -->
+    <div class="cmt-card">
+      <div class="ch" style="padding:6px 14px"><div style="display:flex;align-items:center;gap:8px"><span class="ct">댓글</span><span id="cmt-count" style="font-size:9px;background:var(--blue-bg);color:var(--blue);padding:1px 7px;border-radius:8px;font-weight:500">3</span></div></div>
+      <div class="cmt-list" id="cmt-list"></div>
+      <div class="cmt-ia">
+        <div style="width:26px;height:26px;border-radius:50%;background:var(--blue-bg);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:var(--blue);flex-shrink:0">제</div>
+        <textarea class="cmt-inp" id="cmt-inp" placeholder="댓글 입력... · Enter 등록 / Shift+Enter 줄바꿈" rows="1" oninput="autoGrow(this)" onkeydown="onCmtKey(event)"></textarea>
+        <button class="btn btn-p" style="font-size:10px;padding:4px 12px;flex-shrink:0" onclick="submitCmt()">등록</button>
+      </div>
+    <!-- 전자서명 + 변경이력 병렬 -->
+    <div style="display:flex;gap:12px;align-items:flex-start">
+      <div class="sig-card" id="sig-card" style="flex:1;min-width:0">
+        <div class="ch" style="padding:6px 14px;display:flex;align-items:center;justify-content:space-between">
+          <span class="ct">전자서명</span>
+          <span class="sig-badge sig-unsigned" id="sig-status-badge">미서명</span>
+        </div>
+        <div id="sig-body"></div>
+      </div>
+      <div class="hist-card" id="hist-card" style="flex:1;min-width:0">
+        <div class="hist-hd" onclick="toggleHist()">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="ct">변경이력</span>
+            <span id="hist-count-badge" style="font-size:9px;background:var(--bg2);padding:1px 7px;border-radius:8px;font-weight:500;color:var(--tx2)">0</span>
+          </div>
+          <span id="hist-icon" style="font-size:10px;color:var(--tx3)">▸</span>
+        </div>
+        <div id="hist-bd" style="display:none">
+          <div class="hist-list" id="hist-list"></div>
+        </div>
+      </div>
+    </div>
+    </div>
+  </div>
+</div><!-- /v-detail -->
+</div><!-- /right-panel -->
+</div><!-- /body-wrap -->
+
+<!-- 시약 검색 모달 -->
+<div class="mo-ov" id="mo-r" style="display:none"><div class="mo-box">
+  <div class="mo-title" id="mo-r-title">시약장 검색</div>
+  <input class="mo-inp" id="mo-q" placeholder="시약명 또는 PIN..." oninput="filterR(this.value)"/>
+  <div class="mo-list" id="mo-list"></div>
+  <div class="mo-foot"><button class="btn" onclick="closeMoR()">취소</button></div>
+</div></div>
+
+<!-- 전자서명 모달 -->
+<div class="mo-ov" id="mo-sig" style="display:none"><div class="mo-box" style="width:360px">
+  <div class="mo-title">전자서명</div>
+  <div style="margin-bottom:12px">
+    <div class="mo-label" style="margin-bottom:6px">서명 미리보기</div>
+    <div class="sig-preview" id="sig-mo-preview">제작자</div>
+  </div>
+  <div style="margin-bottom:10px">
+    <div class="mo-label">비밀번호 확인</div>
+    <input class="mo-inp" id="sig-pw" type="password" placeholder="비밀번호 입력" style="margin-bottom:0"/>
+  </div>
+  <div style="font-size:9px;color:var(--tx3);background:var(--bg2);padding:8px 10px;border-radius:5px;line-height:1.8;margin-bottom:12px;border:0.5px solid var(--bd)">
+    ⚠️ 수정 시 서명이 자동 해제됩니다.<br>잠금 후에는 관리자만 잠금 해제 가능합니다.
+  </div>
+  <div class="mo-foot" style="gap:6px">
+    <button class="btn" onclick="closeSigModal()">취소</button>
+    <button class="btn" onclick="doSign(false)" style="border-color:#1D9E75;color:#1D9E75">서명만</button>
+    <button class="btn btn-p" onclick="doSign(true)" style="background:#1D9E75;border-color:#1D9E75">서명 + 잠금</button>
+  </div>
+</div></div>
+
+<!-- 컬럼 추가 모달 -->
+<div class="mo-ov" id="mo-col" style="display:none"><div class="mo-box mo-sm">
+  <div class="mo-title">결과 컬럼 추가</div>
+  <input class="mo-inp" id="col-inp" placeholder="컬럼명 (예: Selectivity, Conversion...)"/>
+  <div class="mo-foot"><button class="btn" onclick="closeMoCol()">취소</button><button class="btn btn-p" onclick="confirmCol()">추가</button></div>
+</div></div>
+
+<!-- 화합물 검색 모달 -->
+<div class="mo-ov" id="mo-cpd" style="display:none"><div class="mo-box" style="width:360px">
+  <div class="mo-title">화합물 검색</div>
+  <input class="mo-inp" id="cpd-q" placeholder="화합물명 또는 PIN..." oninput="filterCpd(this.value)" style="margin-bottom:8px"/>
+  <div class="mo-list" id="cpd-list"></div>
+  <div style="margin-top:8px;padding:6px 10px;background:var(--bg2);border-radius:5px;font-size:9px;color:var(--tx3);">
+    검색 결과가 없으면 직접 입력 후 <strong>시약 등록</strong> 버튼을 사용하세요.
+  </div>
+  <div class="mo-foot"><button class="btn" onclick="closeMoCpd()">취소</button></div>
+</div></div>
+
+<!-- 시약 등록 모달 -->
+<div class="mo-ov" id="mo-reg" style="display:none"><div class="mo-box">
+  <div class="mo-title">시약장 등록</div>
+  <div style="font-size:10px;color:var(--tx3);margin-bottom:12px;">실험에서 생성된 화합물을 시약장에 등록합니다.</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+    <div><div class="mo-label">화합물명 *</div><input class="mo-inp" id="reg-name" placeholder="화합물명"/></div>
+    <div><div class="mo-label">PIN</div><input class="mo-inp" id="reg-pin" placeholder="자동 발급 또는 입력"/></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+    <div><div class="mo-label">분자량 (MW, g/mol) *</div><input class="mo-inp" id="reg-mw" placeholder="숫자 입력" type="number"/></div>
+    <div><div class="mo-label">CAS No.</div><input class="mo-inp" id="reg-cas" placeholder="선택"/></div>
+  </div>
+  <div style="height:0.5px;background:var(--bd);margin:12px 0;"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+    <div><div class="mo-label">수득량 (mg)</div><input class="mo-inp" id="reg-mg" placeholder="mg" type="number"/></div>
+    <div><div class="mo-label">순도 (%)</div><input class="mo-inp" id="reg-pur" placeholder="%"/></div>
+  </div>
+  <div style="margin-top:8px;"><div class="mo-label">메모</div><input class="mo-inp" id="reg-memo" placeholder="보관 위치, 합성 정보 등"/></div>
+  <div class="mo-foot">
+    <button class="btn" onclick="closeMoReg()">취소</button>
+    <button class="btn btn-p" onclick="confirmReg()">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="white" stroke-width="1.3"/><path d="M8 5v6M5 8h6" stroke="white" stroke-width="1.4" stroke-linecap="round"/></svg>
+      시약장에 등록
+    </button>
+  </div>
+</div></div>
+
+<!-- 미리보기 모달 -->
+<div class="prev-ov" id="prev-mo" style="display:none">
+  <div class="prev-box">
+    <div class="prev-hd"><span class="prev-ttl" id="prev-ttl">파일명</span><span class="prev-close" onclick="closePreview()">×</span></div>
+    <div class="prev-bd" id="prev-bd"></div>
+    <div class="prev-ft">
+      <div class="pnav"><button class="pnav-btn" id="pnav-prev" onclick="navP(-1)">← 이전</button><button class="pnav-btn" id="pnav-next" onclick="navP(1)">다음 →</button></div>
+      <span style="font-size:10px;color:var(--tx3)" id="prev-counter"></span>
+    </div>
+  </div>
+</div>
+
+<!-- undo 토스트 -->
+<div class="undo-toast" id="undo-toast"><span id="undo-msg"></span><span class="undo-btn" onclick="doUndo()">되돌리기</span></div>
+
+<script>
+const CPAL=[
+  {bl:'#378ADD',hBg:'#ddeeff',hC:'#0a4a7a',kBg:'#e4f0ff',kC:'#185FA5',rBg:'#f3f8ff',rC:'#5a9fd4',dBg:'#f5faff'},
+  {bl:'#1D9E75',hBg:'#ddf0e8',hC:'#0a4a2a',kBg:'#e2f7ee',kC:'#0F6E56',rBg:'#f2fcf7',rC:'#3aaa80',dBg:'#f4fdf8'},
+  {bl:'#7F77DD',hBg:'#ede8ff',hC:'#3a1a7a',kBg:'#ece8ff',kC:'#534AB7',rBg:'#f8f6ff',rC:'#9990e0',dBg:'#f6f4ff'},
+  {bl:'#EF9F27',hBg:'#fef0d8',hC:'#8a4f00',kBg:'#fef5e4',kC:'#9a5a00',rBg:'#fefaf3',rC:'#c4852a',dBg:'#fefcf5'},
+  {bl:'#D85A30',hBg:'#faece7',hC:'#6b2010',kBg:'#fdf0eb',kC:'#993C1D',rBg:'#fef7f4',rC:'#c05535',dBg:'#fdf5f2'},
+];
+const BARS=['#378ADD','#1D9E75','#7F77DD','#EF9F27','#D85A30'];
+const REAGENTS=[
+  {name:'1-Bromo-2-fluorobenzene',pin:'K01251',mw:175},
+  {name:'1-Bromo-2,4-dimethoxybenzene',pin:'K01275',mw:217.06},
+  {name:'1-Bromo-2-(trifluoromethoxy)benzene',pin:'K01230',mw:241.01},
+  {name:'Piperazine',pin:'K00504',mw:86.14},
+  {name:'Ruphos',pin:'K00595',mw:466.6},
+  {name:'Sodium tert-butoxide',pin:'K00622',mw:96.1},
+  {name:'Tris(dibenzylideneacetone)dipalladium(0)',pin:'K01055',mw:915.7},
+  {name:'2-Bromopyridine',pin:'K02011',mw:158},
+  {name:'4-Bromoanisole',pin:'K02088',mw:187.04},
+];
+
+// baseTarget: 'exp' | 'com-0' | 'com-1' | ...
+let baseTarget='exp';
+let EXP=[
+  {id:'HCE-1',name:'1-Bromo-2-fluorobenzene',   pin:'K01251',mw:175,    eq:1,baseMmol:'10.13',m:'1772'},
+  {id:'HCE-2',name:'1-Bromo-2,4-dimethoxybenzene',pin:'K01275',mw:217.06,eq:1,baseMmol:'10.57',m:'2293.8'},
+  {id:'HCE-3',name:'1-Bromo-2-(trifluoromethoxy)benzene',pin:'K01230',mw:241.01,eq:1,baseMmol:'',m:''},
+];
+let COM=[
+  {name:'Piperazine',          pin:'K00504',mw:86.14, eq:2.03, baseMmol:'',cells:[{m:'3342.5'},{m:'3439.2'},{m:''}]},
+  {name:'Ruphos',              pin:'K00595',mw:466.6, eq:0.375,baseMmol:'',cells:[{m:'99.2'},{m:'105.8'},{m:''}]},
+  {name:'Sodium tert-butoxide',pin:'K00622',mw:96.1,  eq:1.82, baseMmol:'',cells:[{m:'1319.3'},{m:'1320.5'},{m:''}]},
+];
+// 실험결과: 화합물별 데이터
+let resData=EXP.map(()=>({cpd:{name:'',pin:'',mw:null,registered:false},yield:'',inputMg:'',mg:'',pur:'',meth:'',sides:[]}));
+let ATT=EXP.map(()=>[]);
+let refOn=true,comColIdx=COM.length,moTarget=null,memoOpen=false;
+let recTabIdx=0,recTexts={common:''};
+let undoStack=[],undoTimer=null;
+function showToast(msg,dur=2800){
+  const t=document.getElementById('undo-toast');
+  const m=document.getElementById('undo-msg');
+  if(!t||!m)return;
+  m.textContent=msg;
+  // 되돌리기 버튼 숨기기 (sig 토스트는 undo 버튼 불필요)
+  const btn=t.querySelector('.undo-btn');if(btn)btn.style.display='none';
+  t.className='undo-toast on';
+  clearTimeout(undoTimer);
+  undoTimer=setTimeout(()=>{t.className='undo-toast';if(btn)btn.style.display='';},dur);
+}
+// ── 전자서명 & 변경이력 ────────────────────────────
+let signature={status:'unsigned',signerName:'제작자',signedAt:null,lockedAt:null,hash:''};
+let histOpen=false;
+function fmtNow(){const d=new Date();const p=n=>String(n).padStart(2,'0');return`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;}
+function computeHash(obj){let s=JSON.stringify(obj),h=5381;for(let i=0;i<s.length;i++)h=(h*33^s.charCodeAt(i))&0xffffffff;return'MOA-'+(h>>>0).toString(16).toUpperCase().padStart(8,'0');}
+let docHistory=[{at:fmtNow(),actor:'제작자',type:'create',desc:'문서 최초 생성'}];
+function addHistory(type,desc){docHistory.push({at:fmtNow(),actor:'제작자',type,desc});renderHistCard();}
+function checkSigOnEdit(){
+  if(signature.status==='signed'){
+    signature.status='unsigned';signature.hash='';signature.signedAt=null;
+    renderSigCard();showToast('내용 변경으로 서명이 해제되었습니다.');
+  }
+}
+function renderSigCard(){
+  const body=document.getElementById('sig-body');
+  const badge=document.getElementById('sig-status-badge');
+  if(!body)return;
+  const s=signature;
+  const badgeMap={unsigned:['미서명','sig-unsigned'],signed:['서명완료','sig-signed'],locked:['잠금','sig-locked']};
+  if(badge){const[txt,cls]=badgeMap[s.status];badge.textContent=txt;badge.className='sig-badge '+cls;}
+  if(s.status==='unsigned'){
+    body.innerHTML=`<div class="sig-body">
+      <div class="sig-preview" style="font-size:12px;font-style:normal;color:var(--tx3)">서명 없음</div>
+      <div class="sig-actions"><button class="btn btn-p" onclick="openSigModal()">서명하기</button></div>
+    </div>`;
+  } else if(s.status==='signed'){
+    body.innerHTML=`<div class="sig-body">
+      <div class="sig-preview">${esc(s.signerName)}</div>
+      <div class="sig-info-row">
+        <div class="sig-info-item"><div class="sig-info-label">서명자</div><div class="sig-info-val">${esc(s.signerName)}</div></div>
+        <div class="sig-info-item"><div class="sig-info-label">서명일시</div><div class="sig-info-val">${s.signedAt}</div></div>
+      </div>
+      <div class="sig-hash">HASH: ${s.hash}</div>
+      <div class="sig-actions">
+        <button class="btn" onclick="unsign()">서명 해제</button>
+        <button class="btn btn-p" style="background:#1a6bb5;border-color:#1a6bb5" onclick="lockDoc()">잠금</button>
+      </div>
+    </div>`;
+  } else {
+    body.innerHTML=`<div class="sig-body">
+      <div class="sig-preview">${esc(s.signerName)}</div>
+      <div class="sig-info-row">
+        <div class="sig-info-item"><div class="sig-info-label">서명자</div><div class="sig-info-val">${esc(s.signerName)}</div></div>
+        <div class="sig-info-item"><div class="sig-info-label">서명일시</div><div class="sig-info-val">${s.signedAt}</div></div>
+        <div class="sig-info-item"><div class="sig-info-label">잠금일시</div><div class="sig-info-val">${s.lockedAt}</div></div>
+      </div>
+      <div class="sig-hash">HASH: ${s.hash}</div>
+      <div style="font-size:10px;color:#1a6bb5;display:flex;align-items:center;gap:5px;padding:7px 10px;background:#e8f0fb;border-radius:5px">
+        🔒 잠금 상태 — 관리자만 잠금 해제 가능
+      </div>
+    </div>`;
+  }
+}
+function renderHistCard(){
+  const badge=document.getElementById('hist-count-badge');if(badge)badge.textContent=docHistory.length;
+  const el=document.getElementById('hist-list');if(!el)return;
+  const tagLbl={create:'생성',edit:'수정',sign:'서명'};
+  const tagCls={create:'htag-create',edit:'htag-edit',sign:'htag-sign'};
+  const dotCol={create:'#1a6bb5',edit:'#b07d00',sign:'#1D9E75'};
+  el.innerHTML=[...docHistory].reverse().map(h=>`
+    <div class="hist-item">
+      <div class="hist-dot" style="background:${dotCol[h.type]||'#aaa'}"></div>
+      <div style="flex:1">
+        <div class="hist-meta">${h.at} · ${esc(h.actor)}<span class="hist-tag ${tagCls[h.type]||''}">${tagLbl[h.type]||h.type}</span></div>
+        <div class="hist-desc">${esc(h.desc)}</div>
+      </div>
+    </div>`).join('');
+}
+function toggleHist(){histOpen=!histOpen;document.getElementById('hist-bd').style.display=histOpen?'block':'none';document.getElementById('hist-icon').textContent=histOpen?'▾':'▸';}
+function openSigModal(){document.getElementById('sig-mo-preview').textContent=signature.signerName||'제작자';document.getElementById('sig-pw').value='';document.getElementById('mo-sig').style.display='flex';}
+function closeSigModal(){document.getElementById('mo-sig').style.display='none';}
+function doSign(withLock){
+  const pw=document.getElementById('sig-pw').value;
+  if(!pw){showToast('비밀번호를 입력해주세요.');return;}
+  const now=fmtNow();
+  signature.signerName='제작자';signature.signedAt=now;
+  signature.hash=computeHash({EXP,COM,resData});
+  signature.status=withLock?'locked':'signed';
+  if(withLock){signature.lockedAt=now;addHistory('sign','문서 서명 + 잠금');}
+  else addHistory('sign','문서 서명 완료');
+  closeSigModal();renderSigCard();showToast(withLock?'서명 및 잠금 완료':'서명 완료');
+}
+function unsign(){if(signature.status==='locked'){showToast('잠금 상태에서는 해제 불가합니다.');return;}signature.status='unsigned';signature.hash='';signature.signedAt=null;addHistory('sign','서명 해제');renderSigCard();showToast('서명이 해제되었습니다.');}
+function lockDoc(){signature.status='locked';signature.lockedAt=fmtNow();addHistory('sign','문서 잠금');renderSigCard();showToast('문서가 잠금되었습니다.');}
+// ── end 전자서명 ───────────────────────────────────
+let prevFiles=[],prevIdx=0;
+let CMTS=[
+  {id:1,author:'지수',init:'지',color:'#1D9E75',bg:'#e2f7ee',text:'HCE-1 yield가 예상보다 높게 나왔네요. 반응 시간 조건 한번 더 확인해볼게요.',time:'14:22'},
+  {id:2,author:'민준',init:'민',color:'#7F77DD',bg:'#ece8ff',text:'HCE-2 NMR 데이터 첨부해주실 수 있나요? 피크 패턴 확인하고 싶어서요.',time:'15:05'},
+  {id:3,author:'제은',init:'제',color:'#1a6bb5',bg:'#e8f0fa',text:'@민준 네, 위에 NMR 첨부했어요! LYJ1257 2nd run 결과입니다.',time:'15:41'},
+];
+let cmtId=4;
+
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const cp=ci=>CPAL[ci%CPAL.length];
+function di(plan,meas){
+  const p=parseFloat(plan),m=parseFloat(meas);
+  if(!meas||isNaN(m)||!p)return{b:'',k:''};
+  const r=(m-p)/p*100,s=(r>=0?'+':'')+r.toFixed(1)+'%';
+  if(Math.abs(r)<=5)return{b:`<span class="dok">${s}</span>`,k:''};
+  if(Math.abs(r)<=10)return{b:`<span class="dwarn">${s}</span>`,k:'cwarn'};
+  return{b:`<span class="derr">${s}</span>`,k:'cerr'};
+}
+const cW=(mm,mw)=>{const m=parseFloat(mm),w=parseFloat(mw);return(!isNaN(m)&&!isNaN(w)&&w)?(m*w).toFixed(2):null;};
+const isBaseE=()=>baseTarget==='exp';
+const isBaseCom=ci=>baseTarget===`com-${ci}`;
+function getBaseMmol(ri){
+  if(isBaseE())return parseFloat(EXP[ri].baseMmol)||0;
+  const ci=parseInt(baseTarget.replace('com-',''));
+  return parseFloat(COM[ci].baseMmol)||0;
+}
+const autoMmol=(base,eq)=>{const b=parseFloat(base)||0,e=parseFloat(eq)||0;return(b&&e)?(b*e).toFixed(4):''};
+const nextName=()=>'Compound '+'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[comColIdx];
+const eCs=()=>refOn?4:2;
+const cCs=()=>refOn?4:2;
+
+// ── 목록 뷰 폴더 분류 ──────────────────────────────
+const CARDS=[
+  {num:'MB-PRI-HCE-2026-00001',title:'HCE-260309',folder:'2026 Piperazine',status:'active',exp:3,bestYield:'72%',bars:[{l:'HCE-1',w:100,c:'#378ADD'},{l:'HCE-2',w:86,c:'#c8d0dc'},{l:'HCE-3',w:0,c:''}],date:'2026-03-09',author:'제은',clickFn:'goDetail(0)'},
+  {num:'MB-PRI-HCE-2026-00002',title:'HCE-260215 Amide coupling',folder:'2026 Amide',status:'done',exp:6,bestYield:'89%',bars:[{l:'HCE-1',w:88,c:'#1D9E75'},{l:'HCE-2',w:100,c:'#1D9E75'}],date:'2026-02-15',author:'제은',clickFn:''},
+  {num:'MB-PRI-HCE-2026-00003',title:'HCE-260301 Reductive amination',folder:'2026 Piperazine',status:'draft',exp:5,bestYield:'—',bars:[{l:'HCE-1',w:0,c:''}],date:'2026-03-01',author:'제은',clickFn:''},
+  {num:'MB-PRI-HCE-2025-00047',title:'HCE-251120 Suzuki coupling',folder:'2025 Scaffold',status:'done',exp:8,bestYield:'94%',bars:[{l:'HCE-4',w:100,c:'#7F77DD'},{l:'HCE-7',w:85,c:'#c8d0dc'}],date:'2025-11-20',author:'제은',clickFn:''},
+];
+const FOLDERS=[
+  {name:'전체',icon:''},
+  {name:'2026 Piperazine',icon:'📁'},
+  {name:'2026 Amide',icon:'📁'},
+  {name:'2025 Scaffold',icon:'📁'},
+];
+let activeFolder='전체',activeStatus='all';
+const statusTag={active:'<span class="stag s-active">진행 중</span>',done:'<span class="stag s-done">완료</span>',draft:'<span class="stag s-draft">초안</span>'};
+
+function cardHtml(c){
+  const bars=c.bars.map(b=>
+    `<div class="mini-row"><div class="mini-l">${esc(b.l)}</div><div class="mini-tr">${b.w?`<div class="mini-f" style="width:${b.w}%;background:${b.c}"></div>`:''}</div></div>`
+  ).join('');
+  return `<div class="mcard" data-folder="${esc(c.folder)}" data-status="${c.status}" ${c.clickFn?`onclick="${c.clickFn}"`:''}>\
+<div class="mcard-num">${esc(c.num)}</div>\
+<div class="mcard-title">${esc(c.title)}</div>\
+<div class="mcard-meta">${statusTag[c.status]||''}<span style="font-size:9px;color:var(--tx3)">${esc(c.folder)}</span></div>\
+<div class="mcard-stats"><div class="stat"><span class="stat-l">실험 수</span><span class="stat-v">${c.exp}</span></div><div class="stat"><span class="stat-l">최고 yield</span><span class="stat-best">${c.bestYield}</span></div><div class="mini-bars">${bars}</div></div>\
+<div style="font-size:9px;color:var(--tx3);margin-top:8px">${c.date} · ${esc(c.author)}</div></div>`;
+}
+
+let folderDragIdx=null;
+function renderFolderPanel(){
+  const el=document.getElementById('folder-panel');if(!el)return;
+  const counts={};CARDS.forEach(c=>{counts[c.folder]=(counts[c.folder]||0)+1;});
+  el.innerHTML=FOLDERS.map((f,i)=>{
+    const cnt=f.name==='전체'?CARDS.length:(counts[f.name]||0);
+    const isAll=f.name==='전체';
+    const safeName=f.name.replace(/'/g,"\\'");
+    return `<div class="folder-ico${activeFolder===f.name?' fi-active':''}"
+      draggable="true"
+      data-fi="${i}"
+      onclick="selectFolder('${safeName}')"
+      ondragstart="foDragStart(event,${i})"
+      ondragover="foDragOver(event,${i})"
+      ondragleave="foDragLeave(event)"
+      ondrop="foDrop(event,${i})"
+      ondragend="foDragEnd(event)">
+      <div class="folder-ico-img">${isAll?'🗂️':'📁'}</div>
+      <div class="folder-ico-name">${esc(isAll?'전체 보기':f.name)}</div>
+      <div class="folder-ico-cnt">${cnt}</div>
+    </div>`;
+  }).join('');
+}
+function foDragStart(e,i){
+  folderDragIdx=i;
+  e.dataTransfer.effectAllowed='move';
+  setTimeout(()=>e.target.classList.add('fi-dragging'),0);
+}
+function foDragOver(e,i){
+  if(folderDragIdx===null||folderDragIdx===i)return;
+  e.preventDefault();e.dataTransfer.dropEffect='move';
+  e.currentTarget.classList.add('fi-over');
+}
+function foDragLeave(e){e.currentTarget.classList.remove('fi-over');}
+function foDrop(e,i){
+  e.preventDefault();
+  if(folderDragIdx===null||folderDragIdx===i)return;
+  const moved=FOLDERS.splice(folderDragIdx,1)[0];
+  FOLDERS.splice(i,0,moved);
+  folderDragIdx=null;
+  renderFolderPanel();renderCardArea();
+}
+function foDragEnd(e){
+  folderDragIdx=null;
+  document.querySelectorAll('.folder-ico').forEach(el=>el.classList.remove('fi-dragging','fi-over'));
+}
+
+function renderCardArea(){
+  const el=document.getElementById('list-card-area');if(!el)return;
+  const q=(document.getElementById('list-search')?.value||'').toLowerCase();
+  let filtered=CARDS.filter(c=>{
+    if(activeFolder!=='전체'&&c.folder!==activeFolder)return false;
+    if(activeStatus!=='all'&&c.status!==activeStatus)return false;
+    if(q&&!c.title.toLowerCase().includes(q)&&!c.num.toLowerCase().includes(q))return false;
+    return true;
+  });
+  if(activeFolder==='전체'){
+    // 폴더별 그룹 표시
+    const groups={};filtered.forEach(c=>{(groups[c.folder]||(groups[c.folder]=[])).push(c);});
+    el.innerHTML=Object.entries(groups).map(([folder,cards])=>
+      `<div style="margin-bottom:18px">
+        <div class="folder-group-hd">📁 ${esc(folder)} <span style="font-size:9px;color:var(--tx3);font-weight:400">${cards.length}건</span></div>
+        <div class="list-grid">${cards.map(cardHtml).join('')}</div>
+      </div>`
+    ).join('');
+  } else {
+    el.innerHTML=`<div class="list-grid">${filtered.map(cardHtml).join('')}</div>`;
+  }
+}
+
+function selectFolder(name){activeFolder=name;renderFolderPanel();renderCardArea();}
+function setStatusFilter(s){
+  activeStatus=s;
+  ['all','active','done'].forEach(k=>{
+    const btn=document.getElementById('stf-'+k);
+    if(!btn)return;
+    btn.style.background=k===s?'var(--blue-bg)':'';
+    btn.style.borderColor=k===s?'var(--blue-bd)':'';
+    btn.style.color=k===s?'var(--blue)':'';
+  });
+  renderCardArea();
+}
+function filterCards(){renderCardArea();}
+function initListView(){renderFolderPanel();renderCardArea();}
+
+// 뷰 전환
+function goList(){
+  document.getElementById('v-list').className='view on';
+  document.getElementById('v-detail').className='view';
+  document.getElementById('mb-list').style.display='flex';
+  document.getElementById('mb-detail').style.display='none';
+  document.getElementById('bb-list').style.display='flex';
+  document.getElementById('bb-detail').style.display='none';
+  document.getElementById('bc').textContent='홈 / 모아 실험';
+  initListView();
+}
+function goDetail(){
+  document.getElementById('v-list').className='view';
+  document.getElementById('v-detail').className='view on';
+  document.getElementById('mb-list').style.display='none';
+  document.getElementById('mb-detail').style.display='flex';
+  document.getElementById('bb-list').style.display='none';
+  document.getElementById('bb-detail').style.display='flex';
+  document.getElementById('bc').textContent='홈 / 모아 실험 / HCE-260309';
+  render();
+}
+
+// undo
+const snap=()=>JSON.stringify({EXP,COM,baseTarget});
+function pushUndo(desc,s){
+  undoStack.push({desc,s});if(undoStack.length>20)undoStack.shift();
+  document.getElementById('undo-msg').textContent=`"${desc}" 변경됨`;
+  const t=document.getElementById('undo-toast');t.className='undo-toast on';
+  clearTimeout(undoTimer);undoTimer=setTimeout(()=>t.className='undo-toast',3500);
+  checkSigOnEdit();addHistory('edit',desc);
+}
+function doUndo(){
+  if(!undoStack.length)return;
+  const d=JSON.parse(undoStack.pop().s);EXP=d.EXP;COM=d.COM;baseTarget=d.baseTarget;
+  render();document.getElementById('undo-toast').className='undo-toast';
+}
+
+function render(){renderHead();renderBody();renderResult();renderRecTabs();renderCmts();updateChart();renderDashboard();renderSigCard();renderHistCard();}
+
+function renderDashboard(){
+  const yields=EXP.map((_,ri)=>{
+    const d=resData[ri]||{};
+    const y=calcYield(d.inputMg||'',d.mg||'');
+    return y!==''?parseFloat(y):null;
+  });
+  const validYields=yields.filter(y=>y!==null);
+  const total=EXP.length;
+  const doneCount=validYields.length;
+  const bestVal=validYields.length?Math.max(...validYields):null;
+  const bestRi=bestVal!==null?yields.indexOf(bestVal):-1;
+  const avgVal=validYields.length?(validYields.reduce((a,b)=>a+b,0)/validYields.length).toFixed(1):null;
+
+  // 섹션 1: KPI 카드
+  const sumEl=document.getElementById('dash-summary');
+  if(sumEl) sumEl.innerHTML=`
+    <div class="dash-kpi"><div class="dash-kpi-l">총 실험 수</div><div class="dash-kpi-v">${total}</div></div>
+    <div class="dash-kpi"><div class="dash-kpi-l">완료된 실험</div><div class="dash-kpi-v" style="color:var(--green)">${doneCount}</div><div class="dash-kpi-sub">${total-doneCount}건 미완료</div></div>
+    <div class="dash-kpi"><div class="dash-kpi-l">최고 Yield</div><div class="dash-kpi-v" style="color:var(--blue)">${bestVal!==null?bestVal+'%':'—'}</div>${bestRi>=0?`<div class="dash-kpi-sub">${esc(EXP[bestRi].id)}</div>`:''}</div>
+    <div class="dash-kpi"><div class="dash-kpi-l">평균 Yield</div><div class="dash-kpi-v">${avgVal!==null?avgVal+'%':'—'}</div>${validYields.length?`<div class="dash-kpi-sub">완료 ${validYields.length}건 기준</div>`:''}</div>`;
+
+  // 섹션 2: 바 차트
+  const barsEl=document.getElementById('dash-bars');
+  if(barsEl){
+    const mx=Math.max(...yields.map(y=>y||0),1);
+    barsEl.innerHTML=EXP.map((_,ri)=>{
+      const y=yields[ri];
+      const isTop=ri===bestRi&&y!==null;
+      const isDone=y!==null;
+      const pct=isDone?Math.round(y/mx*100):0;
+      const fill=isTop?BARS[ri%BARS.length]:(isDone?'#8ba8c8':'transparent');
+      const track=isDone?'':`border-style:dashed;background:transparent;`;
+      return`<div class="dash-bar-row">
+        <div class="dash-bar-lbl">${esc(EXP[ri].id)}</div>
+        <div class="dash-bar-track" style="${track}">
+          <div class="dash-bar-fill" style="width:${pct}%;background:${fill}"></div>
+        </div>
+        <div class="dash-bar-val" style="color:${isTop?BARS[ri%BARS.length]:(isDone?'var(--tx2)':'var(--tx3)')}">${isDone?y+'%':'—'}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // 섹션 3: 비교 테이블
+  const tblEl=document.getElementById('dash-table');
+  if(tblEl){
+    const hdr=`<thead><tr>
+      <th class="dash-th">실험번호</th>
+      <th class="dash-th">변수시약 E</th>
+      <th class="dash-th" style="text-align:right">수득량(mg)</th>
+      <th class="dash-th" style="text-align:right">Yield %</th>
+    </tr></thead>`;
+    const rows=EXP.map((_,ri)=>{
+      const d=resData[ri]||{};
+      const y=yields[ri];
+      const isDone=y!==null;
+      const isTop=ri===bestRi;
+      const rowStyle=isTop?'background:var(--green-bg);':(!isDone?'opacity:.4;':'');
+      return`<tr style="${rowStyle}">
+        <td class="dash-td" style="font-weight:${isTop?600:400}">${esc(EXP[ri].id)}</td>
+        <td class="dash-td">${esc(EXP[ri].name||'—')}</td>
+        <td class="dash-td" style="text-align:right">${d.mg||'—'}</td>
+        <td class="dash-td" style="text-align:right;font-weight:${isTop?600:400};color:${isTop?'var(--green)':(isDone?'var(--tx)':'var(--tx3)')}">${isDone?y+'%':'—'}</td>
+      </tr>`;
+    }).join('');
+    tblEl.innerHTML=hdr+'<tbody>'+rows+'</tbody>';
+  }
+}
+
+function renderHead(){
+  const ec=eCs(),cc=cCs();
+  // 구조 변경:
+  // 1단 = 실험번호(rowspan=2) | E라디오+변수시약(rowspan=2) | E정량(colspan ec) | [○COM시약명🔍×(colspan cc)] × N
+  // 2단 =                                                     E서브(ec열)          [COM서브(cc열)] × N
+  // 검증: h1 = 1+1+ec+N*cc  /  b0 = 1+1+ec+N*cc  → 일치 ✓
+
+  /* ── 1단 ── */
+  let h1='<tr>';
+  // 실험번호 (rowspan=2)
+  h1+=`<th rowspan="2" style="background:#f2f3f5;color:#555;font-size:9px;font-weight:500;text-align:center;padding:5px 6px;min-width:82px;">실험번호</th>`;
+
+  // 변수시약 (rowspan=2 — 1단+2단 병합)
+  h1+=`<th rowspan="2" style="background:#fef0d8;color:#8a4f00;font-size:9px;font-weight:500;padding:4px 8px;min-width:188px;border-left:2.5px solid #EF9F27;vertical-align:middle;">
+    <div style="display:flex;align-items:center;gap:5px;">
+      <input type="radio" class="base-radio" name="base-radio" value="exp" ${isBaseE()?'checked':''} onchange="setBase('exp')"/>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:9px;font-weight:500;">변수시약${isBaseE()?'&nbsp;<span style="font-size:8px;background:#e8f0fa;color:#1a6bb5;padding:1px 4px;border-radius:3px;border:0.5px solid #b5d4f4;font-weight:500;">기준</span>':''}</div>
+        <span style="font-size:8px;opacity:.6;font-style:italic;">PIN MW</span>
+      </div>
+    </div>
+  </th>`;
+  // E 정량 그룹 (colspan ec)
+  h1+=`<th colspan="${ec}" style="background:#fef0d8;color:#8a4f00;font-size:9px;font-weight:500;text-align:center;padding:4px 6px;">변수시약</th>`;
+
+  // 공통시약 그룹 × N — ○시약명🔍× 를 colspan 셀 안에 통합, 별도 1열 제거
+  COM.forEach((c,ci)=>{
+    const pl=cp(ci);
+    h1+=`<th colspan="${cc}" style="background:${pl.hBg};color:${pl.hC};font-size:9px;font-weight:500;padding:3px 8px;min-width:178px;border-left:2.5px solid ${pl.bl};">
+      <div style="display:flex;align-items:center;gap:5px;">
+        <input type="radio" class="base-radio" name="base-radio" value="com-${ci}" ${isBaseCom(ci)?'checked':''} onchange="setBase('com-${ci}')"/>
+        <div style="flex:1;min-width:0;overflow:hidden;">
+          <div style="display:flex;align-items:center;gap:3px;font-size:9px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            ${esc(c.name)||'시약명'}
+            <span class="sbtn" onclick="openMoR('com',0,${ci})" style="border-color:${pl.bl};flex-shrink:0;"><svg width="9" height="9" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M11 11l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+            <button class="del-col-btn" onclick="delComCol(${ci})">×</button>
+            ${isBaseCom(ci)?'<span style="font-size:8px;background:#e8f0fa;color:#1a6bb5;padding:1px 4px;border-radius:3px;border:0.5px solid #b5d4f4;">기준</span>':''}
+          </div>
+          <span style="font-size:8px;opacity:.6;font-style:italic;display:block;margin-top:1px;">${esc(c.pin)} · MW ${c.mw}</span>
+        </div>
+      </div>
+    </th>`;
+  });
+  h1+='</tr>';
+
+  /* ── 2단 ── */
+  let h2='<tr>';
+  // E 시약명 서브 제거됨 (1단 rowspan=2로 병합)
+  if(refOn){
+    h2+=`<th style="background:#fef5e4;color:#9a5a00;font-size:8px;font-style:italic;text-align:center;padding:3px 4px;min-width:38px;">eq</th>`;
+    h2+=`<th style="background:#fef5e4;color:#9a5a00;font-size:9px;font-weight:500;text-align:center;padding:3px 5px;min-width:66px;">mmol</th>`;
+  }
+  h2+=`<th style="background:#fef5e4;color:#9a5a00;font-size:9px;font-weight:500;text-align:center;padding:3px 5px;min-width:68px;">weight(mg)</th>`;
+  h2+=`<th style="background:#fef5e4;color:#9a5a00;font-size:9px;font-weight:500;text-align:center;padding:3px 5px;min-width:72px;">measure(mg)</th>`;
+  // COM 서브 — 시약명 셀 제거됨
+  COM.forEach((c,ci2)=>{
+    const pl2=cp(ci2);
+    if(refOn){
+      h2+=`<th style="background:${pl2.rBg};color:${pl2.rC};font-size:8px;font-style:italic;text-align:center;padding:3px 4px;min-width:38px;border-left:2.5px solid ${pl2.bl};">eq</th>`;
+      h2+=`<th style="background:${pl2.rBg};color:${pl2.rC};font-size:9px;font-weight:500;text-align:center;padding:3px 4px;min-width:66px;">mmol</th>`;
+    }
+    h2+=`<th style="background:${pl2.kBg};color:${pl2.kC};font-size:9px;font-weight:500;text-align:center;padding:3px 5px;min-width:68px;${!refOn?`border-left:2.5px solid ${pl2.bl};`:''}">weight(mg)</th>`;
+    h2+=`<th style="background:${pl2.kBg};color:${pl2.kC};font-size:9px;font-weight:500;text-align:center;padding:3px 5px;min-width:72px;">measure(mg)</th>`;
+  });
+  h2+='</tr>';
+  document.getElementById('TH').innerHTML=h1+h2;
+}
+
+function renderBody(){
+  let html='';
+  EXP.forEach((d,ri)=>{
+    const base=getBaseMmol(ri),isBase=isBaseE();
+    const eMmol=isBase?parseFloat(d.baseMmol)||0:parseFloat(autoMmol(base,d.eq))||0;
+    const eWeight=cW(eMmol,d.mw);const de=di(eWeight||0,d.m);
+    html+=`<tr>
+      <td class="id-cell">
+        <button class="del-row-btn" onclick="delExpRow(${ri})">×</button>
+        <input class="inp inp-id" value="${esc(d.id)}" oninput="EXP[${ri}].id=this.value;syncIds()"/>
+      </td>
+      <td style="background:${isBase?'#fffdf5':'#fffcf4'};padding:4px 8px;vertical-align:middle;border-left:2.5px solid #EF9F27;">
+        <div class="rcell">
+          <div class="rname-wrap">
+            <span class="rname${d.name?'':' empty'}">${esc(d.name||'시약 검색...')}</span>
+            ${d.pin?`<span class="rsub">${esc(d.pin)} · MW ${d.mw}</span>`:`<span class="rsub" style="color:#ddd">PIN MW</span>`}
+          </div>
+          <span class="sbtn" onclick="openMoR('exp',${ri},0)"><svg width="9" height="9" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M11 11l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+        </div>
+      </td>`;
+    if(refOn){
+      if(isBase){
+        html+=`<td style="background:#fffef9;padding:3px 4px;text-align:center;vertical-align:middle;"><span class="eq1">1.00</span></td>`;
+        html+=`<td style="background:#fff8f0;padding:3px 5px;text-align:right;vertical-align:middle;border:0.5px solid #EF9F27;"><input class="inp inp-mmol" style="border-color:#EF9F27;background:#fffdf8" value="${esc(d.baseMmol)}" placeholder="기준 mmol" oninput="EXP[${ri}].baseMmol=this.value;renderBody()"/></td>`;
+      } else {
+        html+=`<td style="background:#fffef9;padding:3px 4px;text-align:right;vertical-align:middle;"><input class="inp inp-eq" value="${esc(String(d.eq||''))}" oninput="EXP[${ri}].eq=parseFloat(this.value)||0;renderBody()"/></td>`;
+        html+=`<td style="background:#fffef9;padding:3px 5px;text-align:right;vertical-align:middle;"><span class="ro">${eMmol||'—'}</span></td>`;
+      }
+    }
+    html+=`<td style="background:#fffcf4;padding:3px 5px;text-align:right;vertical-align:middle;"><span class="ro">${eWeight||'—'}</span></td>`;
+    html+=`<td id="ec${ri}" class="${de.k}" style="background:#fffcf4;padding:3px 5px;text-align:right;vertical-align:middle;"><input class="inp inp-k" value="${esc(d.m)}" oninput="onEM(${ri},this.value)"/>${de.b}</td>`;
+    COM.forEach((c,ci)=>{
+      const pl=cp(ci),cell=c.cells[ri]||{m:''},isBCom=isBaseCom(ci);
+      const cMmol=isBCom?String(c.baseMmol||''):autoMmol(base,c.eq);
+      const cWeight=cW(cMmol,c.mw);const dc=di(cWeight||0,cell.m);
+      const bl=`border-left:2.5px solid ${pl.bl};`;
+      // 공통시약명 셀 제거됨 — 헤더 colspan 셀에 통합
+      if(refOn){
+        if(isBCom){
+          html+=`<td style="background:${pl.rBg};padding:3px 4px;text-align:center;vertical-align:middle;${bl}"><span class="eq1">1.00</span></td>`;
+          html+=`<td style="background:${pl.rBg};padding:3px 4px;text-align:right;vertical-align:middle;border:0.5px solid ${pl.bl};"><input class="inp inp-mmol" style="border-color:${pl.bl}" value="${esc(String(c.baseMmol||''))}" placeholder="기준 mmol" oninput="COM[${ci}].baseMmol=this.value;renderBody()"/></td>`;
+        } else {
+          html+=`<td style="background:${pl.rBg};padding:3px 4px;text-align:right;vertical-align:middle;${bl}"><input class="inp inp-eq" style="color:${pl.rC}" value="${esc(String(c.eq||''))}" oninput="COM[${ci}].eq=parseFloat(this.value)||0;renderBody()"/></td>`;
+          html+=`<td style="background:${pl.rBg};padding:3px 4px;text-align:right;vertical-align:middle;font-size:9px;color:${pl.rC};">${cMmol||'—'}</td>`;
+        }
+      }
+      html+=`<td style="background:${pl.dBg};padding:3px 5px;text-align:right;vertical-align:middle;${!refOn?bl:''}"><span class="ro">${cWeight||'—'}</span></td>`;
+      html+=`<td id="cc${ci}_${ri}" class="${dc.k}" style="background:${pl.dBg};padding:3px 5px;text-align:right;vertical-align:middle;"><input class="inp inp-k" value="${esc(cell.m)}" oninput="onCM(${ci},${ri},this.value)"/>${dc.b}</td>`;
+    });
+    html+='</tr>';
+  });
+  document.getElementById('TB').innerHTML=html;
+  updateCondScale();
+}
+
+function setBase(val){pushUndo('기준물질 변경',snap());baseTarget=val;render();}
+
+function updateBanner(){
+  const el=document.getElementById('banner-txt');
+  if(isBaseE()){
+    el.innerHTML='기준물질: <strong>변수시약 E</strong> — 각 실험별 mmol 직접 입력 · eq = 1 고정 · 공통시약은 eq로 자동계산';
+  } else {
+    const ci=parseInt(baseTarget.replace('com-',''));
+    el.innerHTML=`기준물질: <strong>${esc(COM[ci].name)}</strong> (${esc(COM[ci].pin)}) — mmol 입력 · eq = 1 고정 · 다른 시약은 eq로 자동계산`;
+  }
+}
+
+function onEM(ri,val){
+  EXP[ri].m=val;const base=getBaseMmol(ri);
+  const em=isBaseE()?parseFloat(EXP[ri].baseMmol)||0:parseFloat(autoMmol(base,EXP[ri].eq))||0;
+  const d=di(cW(em,EXP[ri].mw)||0,val);const cell=document.getElementById(`ec${ri}`);
+  if(cell){cell.querySelectorAll('.dok,.dwarn,.derr').forEach(e=>e.remove());cell.className=d.k;cell.style.cssText='background:#fffcf4;padding:3px 5px;text-align:right;vertical-align:middle;';if(d.b){const s=document.createElement('span');s.innerHTML=d.b;cell.appendChild(s.firstChild);}}
+}
+function onCM(ci,ri,val){
+  COM[ci].cells[ri].m=val;const base=getBaseMmol(ri);const isBCom=isBaseCom(ci);
+  const cm=isBCom?String(COM[ci].baseMmol||''):autoMmol(base,COM[ci].eq);
+  const d=di(cW(cm,COM[ci].mw)||0,val);const pl=cp(ci);const cell=document.getElementById(`cc${ci}_${ri}`);
+  if(cell){cell.querySelectorAll('.dok,.dwarn,.derr').forEach(e=>e.remove());cell.className=d.k;cell.style.cssText=`background:${pl.dBg};padding:3px 5px;text-align:right;vertical-align:middle;`;if(d.b){const s=document.createElement('span');s.innerHTML=d.b;cell.appendChild(s.firstChild);}}
+}
+
+function renderRecTabs(){
+  let html=`<div class="rec-tab${recTabIdx===0?' on':''}" onclick="switchRec(0)">공통</div>`;
+  EXP.forEach((d,ri)=>html+=`<div class="rec-tab${recTabIdx===ri+1?' on':''}" onclick="switchRec(${ri+1})">${esc(d.id)}</div>`);
+  document.getElementById('rec-tabs').innerHTML=html;
+  const key=recTabIdx===0?'common':(EXP[recTabIdx-1]?.id||'common');
+  const ta=document.getElementById('rec-ta');
+  if(ta){ta.value=recTexts[key]||'';ta.placeholder=recTabIdx===0?'모든 실험 공통 기록 (반응 조건, 공통 절차 등)':`${EXP[recTabIdx-1]?.id} 개별 기록`;}
+}
+function switchRec(idx){
+  const oldKey=recTabIdx===0?'common':(EXP[recTabIdx-1]?.id||'common');
+  const ta=document.getElementById('rec-ta');if(ta)recTexts[oldKey]=ta.value;
+  recTabIdx=idx;renderRecTabs();
+}
+function onRecInput(){
+  const key=recTabIdx===0?'common':(EXP[recTabIdx-1]?.id||'common');
+  const ta=document.getElementById('rec-ta');if(ta)recTexts[key]=ta.value;
+}
+function syncIds(){
+  EXP.forEach((d,ri)=>{const c=document.getElementById(`rid${ri}`);if(c)c.innerHTML=`<span style="font-size:10px;font-weight:500">${esc(d.id)}</span>`;});
+  renderRecTabs();updateChart();
+}
+
+// mmol 계산: mg / MW
+function calcMmol(mg,mw){
+  const m=parseFloat(mg),w=parseFloat(mw);
+  if(!mg||mg===''||isNaN(m)||m<=0||!w||isNaN(w))return null;
+  return(m/w).toFixed(4);
+}
+
+function calcYield(inputMg,outputMg){
+  const i=parseFloat(inputMg),o=parseFloat(outputMg);
+  if(isNaN(i)||i<=0||isNaN(o)||o<=0)return '';
+  return (o/i*100).toFixed(1);
+}
+
+function newSide(){return{cpd:{name:'',pin:'',mw:null},inputMg:'',mg:'',pur:'',meth:'',att:[]};}
+
+function calcYieldSum(ri){
+  const d=resData[ri];
+  const ym=parseFloat(calcYield(d.inputMg,d.mg))||0;
+  const ys=(d.sides||[]).reduce((a,s)=>a+(parseFloat(calcYield(s.inputMg,s.mg))||0),0);
+  const t=ym+ys;
+  return t>0?t.toFixed(1):null;
+}
+
+function renderCpdCell(d,openFn,directFn){
+  return`<div class="cpd-cell">
+    <div style="flex:1;min-width:0;overflow:hidden">
+      <div class="cpd-name${d.cpd.name?'':' empty'}">${esc(d.cpd.name||'검색 또는 직접 입력')}</div>
+      ${d.cpd.pin||d.cpd.mw?`<div class="cpd-sub">${d.cpd.pin?esc(d.cpd.pin)+' · ':''}${d.cpd.mw?'MW '+d.cpd.mw:''}</div>`:''}
+    </div>
+    <span class="sbtn" onclick="${openFn}" title="시약장 검색">
+      <svg width="10" height="10" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M11 11l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    </span>
+  </div>
+  ${!d.cpd.name?`<input class="rinp" style="width:100%;margin-top:3px;text-align:left" placeholder="직접 입력..." oninput="${directFn}"/>`:''}`;
+}
+
+function renderAttCell(files,filesId,addFn,removeFnPrefix){
+  return`<div class="att-wrap"><div class="att-files" id="${filesId}">
+    ${files.map((f,fi)=>{const thumb=f.type==='image'&&f.dataUrl?`<img class="att-thumb" src="${esc(f.dataUrl)}"/>`:'';return`<span class="att-tag">${thumb}<span class="att-name">${esc(f.name)}</span><span class="att-x" onclick="event.stopPropagation();${removeFnPrefix}(${fi})">×</span></span>`;}).join('')}
+  </div>
+  <label class="att-add" style="margin-top:3px;cursor:pointer">
+    <svg width="10" height="10" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M8 3v10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>파일 추가
+    <input type="file" style="display:none" multiple accept="image/*,.pdf" onchange="${addFn}"/>
+  </label></div>`;
+}
+
+function renderResult(){
+  const hh=`
+    <th class="rth" style="min-width:78px">실험번호</th>
+    <th class="rth" style="min-width:168px">화합물명<br><span style="font-size:8px;opacity:.6;font-style:italic">PIN · MW</span></th>
+    <th class="rth" style="min-width:72px">input(mg)</th>
+    <th class="rth" style="min-width:72px">output(mg)</th>
+    <th class="rth" style="min-width:68px;color:var(--blue)">Yield %<br><span style="font-size:8px;font-weight:400;font-style:italic;opacity:.7">자동계산</span></th>
+    <th class="rth" style="min-width:68px;color:var(--blue)">mmol<br><span style="font-size:8px;font-weight:400;font-style:italic;opacity:.7">자동계산</span></th>
+    <th class="rth" style="min-width:58px">순도 %</th>
+    <th class="rth" style="min-width:84px">분석 방법</th>
+    <th class="rth" style="min-width:180px">첨부파일</th>`;
+  document.getElementById('res-head').innerHTML=hh;
+
+  function methSel(val,onchg){return`<select class="rsel" onchange="${onchg}"><option value="">—</option><option${val==='LCMS'?' selected':''}>LCMS</option><option${val==='NMR'?' selected':''}>NMR</option><option${val==='HPLC'?' selected':''}>HPLC</option><option${val==='GC'?' selected':''}>GC</option></select>`;}
+
+  let html='';
+  EXP.forEach((_,ri)=>{
+    if(!resData[ri])resData[ri]=Object.assign(newSide(),{cpd:{name:'',pin:'',mw:null,registered:false},yield:'',sides:[]});
+    if(!resData[ri].sides)resData[ri].sides=[];
+    if(!ATT[ri])ATT[ri]=[];
+    const d=resData[ri];
+    const yld=calcYield(d.inputMg,d.mg);
+    const mmol=calcMmol(d.mg,d.cpd.mw);
+    const ysum=calcYieldSum(ri);
+
+    // ── main row ──
+    html+=`<tr class="res-main-row">
+      <td class="rtd" id="rid${ri}" style="vertical-align:top;padding-top:7px">
+        <span style="font-size:10px;font-weight:500">${esc(EXP[ri].id)}</span>
+        <div class="ysum" id="ysum${ri}" style="${ysum?'display:block':'display:none'}">Σ ${ysum||''}%</div>
+        <button class="add-side-btn" onclick="addSide(${ri})">＋ side</button>
+      </td>
+      <td class="rtd" style="padding:4px 8px">
+        ${renderCpdCell(d,`openMoCpd(${ri},null)`,`resData[${ri}].cpd.name=this.value;syncResId(${ri})`)}
+      </td>
+      <td class="rtd"><input class="rinp" style="width:64px" value="${esc(d.inputMg)}" placeholder="mg" oninput="onInputMgInput(${ri},this.value)"/></td>
+      <td class="rtd"><input class="rinp" style="width:64px" value="${esc(d.mg)}" placeholder="mg" oninput="onMgInput(${ri},this.value)"/></td>
+      <td class="rtd" style="text-align:right"><span class="mmol-auto${yld?' has':''}" id="yi${ri}">${yld?yld+'%':'—'}</span></td>
+      <td class="rtd" style="text-align:right"><span class="mmol-auto${mmol?' has':''}" id="mmol${ri}">${mmol||('—'+(d.cpd.mw?'':'<span style="font-size:8px;color:#bbb;display:block">MW 필요</span>'))}</span></td>
+      <td class="rtd"><input class="rinp" style="width:50px" value="${esc(d.pur)}" placeholder="%" oninput="resData[${ri}].pur=this.value"/></td>
+      <td class="rtd">${methSel(d.meth,`resData[${ri}].meth=this.value`)}</td>
+      <td class="rtd">${renderAttCell(ATT[ri],`att-files-${ri}`,`addFiles(${ri},this)`,`removeAtt.bind(null,${ri})`)}</td>
+    </tr>`;
+
+    // ── side rows ──
+    (d.sides||[]).forEach((s,si)=>{
+      const syld=calcYield(s.inputMg,s.mg);
+      const smmol=calcMmol(s.mg,s.cpd.mw);
+      if(!s.att)s.att=[];
+      html+=`<tr class="res-side-row">
+        <td class="rtd" style="vertical-align:middle;padding-left:12px">
+          <div class="side-label">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 2v5h6" stroke="#aaa" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Side
+            <button class="side-del-btn" onclick="delSide(${ri},${si})" title="삭제">×</button>
+          </div>
+        </td>
+        <td class="rtd" style="padding:4px 8px">
+          ${renderCpdCell(s,`openMoCpd(${ri},${si})`,`resData[${ri}].sides[${si}].cpd.name=this.value`)}
+        </td>
+        <td class="rtd"><input class="rinp" style="width:64px" value="${esc(s.inputMg)}" placeholder="mg" oninput="onSideInputMgInput(${ri},${si},this.value)"/></td>
+        <td class="rtd"><input class="rinp" style="width:64px" value="${esc(s.mg)}" placeholder="mg" oninput="onSideMgInput(${ri},${si},this.value)"/></td>
+        <td class="rtd" style="text-align:right"><span class="mmol-auto${syld?' has':''}" id="yi-s-${ri}-${si}">${syld?syld+'%':'—'}</span></td>
+        <td class="rtd" style="text-align:right"><span class="mmol-auto${smmol?' has':''}" id="mmol-s-${ri}-${si}">${smmol||'—'}</span></td>
+        <td class="rtd"><input class="rinp" style="width:50px" value="${esc(s.pur)}" placeholder="%" oninput="resData[${ri}].sides[${si}].pur=this.value"/></td>
+        <td class="rtd">${methSel(s.meth,`resData[${ri}].sides[${si}].meth=this.value`)}</td>
+        <td class="rtd">${renderAttCell(s.att,`att-s-${ri}-${si}`,`addSideFiles(${ri},${si},this)`,`removeSideAtt.bind(null,${ri},${si})`)}</td>
+      </tr>`;
+    });
+  });
+  document.getElementById('RB').innerHTML=html;
+}
+
+function syncResId(ri){/* 실험번호 싱크 — 필요 시 확장 */}
+
+// ── 대시보드 노트 ──────────────────────────────────
+let dashNote={text:'',imgs:[]};
+function addDashNoteFiles(inp){
+  if(!inp.files?.length)return;
+  Array.from(inp.files).forEach(f=>{
+    const r=new FileReader();
+    r.onload=e=>{dashNote.imgs.push({name:f.name,dataUrl:e.target.result});renderDashNoteImgs();};
+    r.readAsDataURL(f);
+  });
+  inp.value='';
+}
+function removeDashNoteImg(i){dashNote.imgs.splice(i,1);renderDashNoteImgs();}
+function renderDashNoteImgs(){
+  const el=document.getElementById('dash-note-imgs');if(!el)return;
+  el.innerHTML=dashNote.imgs.map((img,i)=>`
+    <div class="dash-note-img" onclick="openDashNotePreview(${i})">
+      <img src="${esc(img.dataUrl)}" alt="${esc(img.name)}"/>
+      <div class="dash-note-img-x" onclick="event.stopPropagation();removeDashNoteImg(${i})">×</div>
+    </div>`).join('');
+}
+function openDashNotePreview(i){
+  const img=dashNote.imgs[i];if(!img)return;
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out';
+  ov.onclick=()=>ov.remove();
+  ov.innerHTML=`<img src="${esc(img.dataUrl)}" style="max-width:90vw;max-height:90vh;border-radius:6px;box-shadow:0 8px 40px rgba(0,0,0,.4)"/>`;
+  document.body.appendChild(ov);
+}
+
+// ── 실험 조건 ──────────────────────────────────────
+let expCond={temp:'',time:'',atm:'',solvent:'',solventCustom:'',solventVol:'',rpm:''};
+
+function getCurBaseMmol(){
+  if(isBaseE())return parseFloat(EXP[0]?.baseMmol)||0;
+  const ci=parseInt(baseTarget.replace('com-',''));
+  return parseFloat(COM[ci]?.baseMmol)||0;
+}
+function updateCondScale(){
+  const sc=getCurBaseMmol();
+  const sel=document.getElementById('cond-scale');
+  if(sel){if(sc){sel.textContent=sc;sel.className='mmol-auto has';}else{sel.textContent='—';sel.className='mmol-auto';}}
+  const vol=parseFloat(expCond.solventVol)||0;
+  const cel=document.getElementById('cond-conc');
+  if(cel){if(sc&&vol){cel.textContent=(sc/vol).toFixed(3);cel.className='mmol-auto has';}else{cel.textContent='—';cel.className='mmol-auto';}}
+}
+
+function confirmClose(){
+  if(confirm('종료처리하시겠습니까?\n종료처리 후에는 수정을 할 수 없습니다.')){
+    document.getElementById('bb-detail').querySelectorAll('button').forEach(b=>{
+      if(b.id!=='b-back')b.disabled=true;
+    });
+    document.querySelectorAll('.mi-inp').forEach(inp=>inp.disabled=true);
+    document.getElementById('b-close').textContent='종료됨';
+    document.getElementById('b-close').style.opacity='0.5';
+    updateLastMod();
+  }
+}
+
+function updateLastMod(){
+  const now=new Date();
+  const s=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  const el=document.getElementById('mb-lastmod');
+  if(el)el.textContent=s;
+}
+
+// side product 추가/삭제
+function addSide(ri){if(!resData[ri].sides)resData[ri].sides=[];resData[ri].sides.push(newSide());renderResult();}
+function delSide(ri,si){resData[ri].sides.splice(si,1);renderResult();}
+
+// yield sum DOM 업데이트
+function updateYieldSum(ri){
+  const el=document.getElementById(`ysum${ri}`);if(!el)return;
+  const s=calcYieldSum(ri);
+  if(s){el.textContent='Σ '+s+'%';el.style.display='block';}else{el.textContent='';el.style.display='none';}
+}
+
+function onMgInput(ri,val){
+  resData[ri].mg=val;
+  const mmol=calcMmol(val,resData[ri].cpd.mw);
+  const el=document.getElementById(`mmol${ri}`);
+  if(el){
+    if(mmol){el.textContent=mmol;el.className='mmol-auto has';}
+    else{el.innerHTML='—'+(resData[ri].cpd.mw?'':'<span style="font-size:8px;color:#bbb;display:block">MW 필요</span>');el.className='mmol-auto';}
+  }
+  const yld=calcYield(resData[ri].inputMg,val);
+  const yel=document.getElementById(`yi${ri}`);
+  if(yel){if(yld){yel.textContent=yld+'%';yel.className='mmol-auto has';}else{yel.textContent='—';yel.className='mmol-auto';}}
+  updateYieldSum(ri);updateChart();renderDashboard();
+  if(val)addHistory('edit',`HCE-${ri+1} output(mg) 입력: ${val}mg`);
+  checkSigOnEdit();
+}
+function onInputMgInput(ri,val){
+  resData[ri].inputMg=val;
+  const yld=calcYield(val,resData[ri].mg);
+  const yel=document.getElementById(`yi${ri}`);
+  if(yel){if(yld){yel.textContent=yld+'%';yel.className='mmol-auto has';}else{yel.textContent='—';yel.className='mmol-auto';}}
+  updateYieldSum(ri);updateChart();renderDashboard();
+  if(val)addHistory('edit',`HCE-${ri+1} input(mg) 입력: ${val}mg`);
+  checkSigOnEdit();
+}
+
+// side product 입력 핸들러
+function onSideMgInput(ri,si,val){
+  resData[ri].sides[si].mg=val;
+  const mmol=calcMmol(val,resData[ri].sides[si].cpd.mw);
+  const mel=document.getElementById(`mmol-s-${ri}-${si}`);
+  if(mel){if(mmol){mel.textContent=mmol;mel.className='mmol-auto has';}else{mel.textContent='—';mel.className='mmol-auto';}}
+  const yld=calcYield(resData[ri].sides[si].inputMg,val);
+  const yel=document.getElementById(`yi-s-${ri}-${si}`);
+  if(yel){if(yld){yel.textContent=yld+'%';yel.className='mmol-auto has';}else{yel.textContent='—';yel.className='mmol-auto';}}
+  updateYieldSum(ri);updateChart();
+}
+function onSideInputMgInput(ri,si,val){
+  resData[ri].sides[si].inputMg=val;
+  const yld=calcYield(val,resData[ri].sides[si].mg);
+  const yel=document.getElementById(`yi-s-${ri}-${si}`);
+  if(yel){if(yld){yel.textContent=yld+'%';yel.className='mmol-auto has';}else{yel.textContent='—';yel.className='mmol-auto';}}
+  updateYieldSum(ri);updateChart();
+}
+
+// 화합물 검색 모달
+let cpdTarget=null; // {ri, si} — si===null이면 main product
+function openMoCpd(ri,si){
+  cpdTarget={ri,si:si===undefined?null:si};
+  document.getElementById('cpd-q').value='';filterCpd('');
+  document.getElementById('mo-cpd').style.display='flex';
+  setTimeout(()=>document.getElementById('cpd-q').focus(),40);
+}
+function closeMoCpd(){document.getElementById('mo-cpd').style.display='none';cpdTarget=null;}
+function filterCpd(q){
+  q=(q||'').toLowerCase();
+  const res=REAGENTS.filter(r=>r.name.toLowerCase().includes(q)||r.pin.toLowerCase().includes(q));
+  let html='';
+  if(!res.length)html='<div style="padding:10px;text-align:center;font-size:10px;color:#aaa">검색 결과 없음</div>';
+  else res.forEach(r=>html+=`<div class="mo-item" onclick="selectCpd('${esc(r.name)}','${r.pin}',${r.mw})"><span style="font-size:10px;font-weight:500">${esc(r.name)}</span><span class="mo-pin">${r.pin} MW:${r.mw}</span></div>`);
+  document.getElementById('cpd-list').innerHTML=html;
+}
+function selectCpd(name,pin,mw){
+  if(cpdTarget===null)return;
+  const {ri,si}=cpdTarget;
+  const target=si===null?resData[ri]:resData[ri].sides[si];
+  target.cpd.name=name;target.cpd.pin=pin;target.cpd.mw=parseFloat(mw)||null;
+  closeMoCpd();renderResult();
+}
+
+// 시약 등록 모달
+let regTarget=null;
+function openRegModal(ri){
+  regTarget=ri;
+  const d=ri!==null?resData[ri]:{cpd:{name:'',pin:'',mw:''},mg:'',pur:''};
+  document.getElementById('reg-name').value=d.cpd?.name||'';
+  document.getElementById('reg-pin').value=d.cpd?.pin||'';
+  document.getElementById('reg-mw').value=d.cpd?.mw||'';
+  document.getElementById('reg-mg').value=d.mg||'';
+  document.getElementById('reg-pur').value=d.pur||'';
+  document.getElementById('reg-cas').value='';
+  document.getElementById('reg-memo').value='';
+  document.getElementById('mo-reg').style.display='flex';
+  setTimeout(()=>document.getElementById('reg-name').focus(),40);
+}
+function closeMoReg(){document.getElementById('mo-reg').style.display='none';regTarget=null;}
+function confirmReg(){
+  const name=document.getElementById('reg-name').value.trim();
+  if(!name){document.getElementById('reg-name').style.borderColor='var(--red)';document.getElementById('reg-name').focus();return;}
+  const mw=parseFloat(document.getElementById('reg-mw').value)||null;
+  if(regTarget!==null){
+    resData[regTarget].cpd.registered=true;
+    if(!resData[regTarget].cpd.name)resData[regTarget].cpd.name=name;
+    if(mw)resData[regTarget].cpd.mw=mw;
+  }
+  closeMoReg();renderResult();
+}
+
+function addFiles(ri,inp){
+  if(!inp.files?.length)return;
+  Array.from(inp.files).forEach(f=>{const r=new FileReader();r.onload=e=>{ATT[ri].push({name:f.name,dataUrl:e.target.result,type:/\.(png|jpg|jpeg|gif|webp)$/i.test(f.name)?'image':'other'});refreshAttRow(ri);};r.readAsDataURL(f);});
+  inp.value='';
+}
+function removeAtt(ri,fi){ATT[ri].splice(fi,1);refreshAttRow(ri);}
+function refreshAttRow(ri){
+  const w=document.getElementById(`att-files-${ri}`);if(!w)return;
+  w.innerHTML=ATT[ri].map((f,fi)=>{const thumb=f.type==='image'&&f.dataUrl?`<img class="att-thumb" src="${esc(f.dataUrl)}"/>`:'';return`<span class="att-tag" onclick="openPreview(${ri},${fi})">${thumb}<span class="att-name">${esc(f.name)}</span><span class="att-x" onclick="event.stopPropagation();removeAtt(${ri},${fi})">×</span></span>`;}).join('');
+}
+function addSideFiles(ri,si,inp){
+  if(!inp.files?.length)return;
+  if(!resData[ri].sides[si].att)resData[ri].sides[si].att=[];
+  Array.from(inp.files).forEach(f=>{const r=new FileReader();r.onload=e=>{resData[ri].sides[si].att.push({name:f.name,dataUrl:e.target.result,type:/\.(png|jpg|jpeg|gif|webp)$/i.test(f.name)?'image':'other'});refreshSideAttRow(ri,si);};r.readAsDataURL(f);});
+  inp.value='';
+}
+function removeSideAtt(ri,si,fi){resData[ri].sides[si].att.splice(fi,1);refreshSideAttRow(ri,si);}
+function refreshSideAttRow(ri,si){
+  const w=document.getElementById(`att-s-${ri}-${si}`);if(!w)return;
+  w.innerHTML=resData[ri].sides[si].att.map((f,fi)=>{const thumb=f.type==='image'&&f.dataUrl?`<img class="att-thumb" src="${esc(f.dataUrl)}"/>`:'';return`<span class="att-tag">${thumb}<span class="att-name">${esc(f.name)}</span><span class="att-x" onclick="event.stopPropagation();removeSideAtt(${ri},${si},${fi})">×</span></span>`;}).join('');
+}
+function openPreview(ri,fi){
+  prevFiles=ATT[ri].filter(f=>f.type==='image'&&f.dataUrl);
+  prevIdx=prevFiles.findIndex(f=>f===ATT[ri][fi]);
+  if(!prevFiles.length){prevFiles=ATT[ri];prevIdx=fi;}
+  if(prevIdx<0)prevIdx=0;
+  showPreview();document.getElementById('prev-mo').style.display='flex';
+}
+function showPreview(){
+  const f=prevFiles[prevIdx];if(!f)return;
+  document.getElementById('prev-ttl').textContent=f.name;
+  const bd=document.getElementById('prev-bd');
+  bd.innerHTML=f.type==='image'&&f.dataUrl?`<img src="${esc(f.dataUrl)}" style="max-height:65vh"/>`:
+    `<div style="text-align:center;padding:32px"><div style="font-size:40px;margin-bottom:12px">📄</div><div style="font-size:13px;font-weight:500">${esc(f.name)}</div></div>`;
+  document.getElementById('pnav-prev').disabled=prevIdx===0;
+  document.getElementById('pnav-next').disabled=prevIdx===prevFiles.length-1;
+  document.getElementById('prev-counter').textContent=`${prevIdx+1} / ${prevFiles.length}`;
+}
+function navP(dir){const n=prevIdx+dir;if(n<0||n>=prevFiles.length)return;prevIdx=n;showPreview();}
+function closePreview(){document.getElementById('prev-mo').style.display='none';}
+document.addEventListener('keydown',e=>{
+  if(document.getElementById('prev-mo').style.display==='none')return;
+  if(e.key==='Escape')closePreview();
+  if(e.key==='ArrowLeft')navP(-1);if(e.key==='ArrowRight')navP(1);
+});
+function openColModal(){document.getElementById('mo-col').style.display='flex';setTimeout(()=>document.getElementById('col-inp').focus(),40);}
+function closeMoCol(){document.getElementById('mo-col').style.display='none';document.getElementById('col-inp').value='';}
+function confirmCol(){}
+function delResCol(){}
+
+function renderCmts(){
+  let html='';
+  CMTS.forEach(c=>{
+    html+=`<div class="cmt-item"><div class="avatar" style="background:${c.bg};color:${c.color}">${esc(c.init)}</div>
+      <div class="cmt-bubble"><div class="cmt-meta"><span class="cmt-author">${esc(c.author)}</span><span class="cmt-time">${esc(c.time)}</span></div>
+      <div class="cmt-text">${esc(c.text).replace(/@(\S+)/g,'<span style="color:var(--blue);font-weight:500">@$1</span>')}</div>
+      <div class="cmt-acts"><span class="cact" onclick="replyTo('${esc(c.author)}')">답글</span>${c.author==='제은'?`<span class="cact" onclick="delCmt(${c.id})">삭제</span>`:''}</div>
+      </div></div>`;
+  });
+  if(!CMTS.length)html='<div style="font-size:11px;color:var(--tx3);text-align:center;padding:12px">아직 댓글이 없어요.</div>';
+  document.getElementById('cmt-list').innerHTML=html;
+  document.getElementById('cmt-count').textContent=CMTS.length;
+}
+function submitCmt(){
+  const inp=document.getElementById('cmt-inp'),text=inp.value.trim();if(!text)return;
+  const now=new Date();
+  CMTS.push({id:cmtId++,author:'제은',init:'제',color:'#1a6bb5',bg:'#e8f0fa',text,time:`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`});
+  inp.value='';inp.style.height='';renderCmts();
+  const list=document.getElementById('cmt-list');list.scrollTop=list.scrollHeight;
+}
+function delCmt(id){CMTS=CMTS.filter(c=>c.id!==id);renderCmts();}
+function replyTo(author){const inp=document.getElementById('cmt-inp');inp.value=`@${author} `;inp.focus();}
+function onCmtKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();submitCmt();}}
+function autoGrow(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,80)+'px';}
+
+function toggleRef(on){refOn=on;render();}
+function toggleMemo(){memoOpen=!memoOpen;document.getElementById('memo-bd').style.display=memoOpen?'block':'none';document.getElementById('memo-icon').textContent=memoOpen?'▾':'▸';}
+function openMoR(type,ri,ci){
+  moTarget={type,ri,ci};document.getElementById('mo-r-title').textContent=type==='exp'?'변수시약 검색':'공통시약 검색';
+  document.getElementById('mo-q').value='';filterR('');document.getElementById('mo-r').style.display='flex';
+  setTimeout(()=>document.getElementById('mo-q').focus(),40);
+}
+function closeMoR(){document.getElementById('mo-r').style.display='none';moTarget=null;}
+function filterR(q){
+  q=(q||'').toLowerCase();
+  const res=REAGENTS.filter(r=>r.name.toLowerCase().includes(q)||r.pin.toLowerCase().includes(q));
+  let html='';
+  if(!res.length)html='<div style="padding:10px;text-align:center;font-size:10px;color:#aaa">검색 결과 없음</div>';
+  else res.forEach(r=>html+=`<div class="mo-item" onclick="selectR('${esc(r.name)}','${r.pin}',${r.mw})"><span style="font-size:10px;font-weight:500">${esc(r.name)}</span><span class="mo-pin">${r.pin} MW:${r.mw}</span></div>`);
+  document.getElementById('mo-list').innerHTML=html;
+}
+function selectR(name,pin,mw){
+  if(!moTarget)return;pushUndo('시약 변경',snap());
+  if(moTarget.type==='exp'){EXP[moTarget.ri].name=name;EXP[moTarget.ri].pin=pin;EXP[moTarget.ri].mw=parseFloat(mw)||0;}
+  else{COM[moTarget.ci].name=name;COM[moTarget.ci].pin=pin;COM[moTarget.ci].mw=parseFloat(mw)||0;}
+  closeMoR();render();
+}
+function addExpRow(){
+  pushUndo('실험 행 추가',snap());
+  EXP.push({id:`HCE-${EXP.length+1}`,name:'',pin:'',mw:'',eq:1,baseMmol:'',m:''});
+  resData.push({cpd:{name:'',pin:'',mw:null,registered:false},yield:'',inputMg:'',mg:'',pur:'',meth:'',sides:[]});
+  ATT.push([]);COM.forEach(c=>c.cells.push({m:''}));render();
+}
+function delExpRow(ri){
+  if(EXP.length<=1)return;pushUndo(`"${EXP[ri].id}" 행 삭제`,snap());
+  EXP.splice(ri,1);resData.splice(ri,1);ATT.splice(ri,1);COM.forEach(c=>c.cells.splice(ri,1));
+  if(recTabIdx>EXP.length)recTabIdx=0;render();
+}
+function addComCol(){
+  pushUndo('공통시약 열 추가',snap());
+  COM.push({name:nextName(),pin:'',mw:'',eq:'',baseMmol:'',cells:EXP.map(()=>({m:''}))});
+  comColIdx++;render();
+}
+function delComCol(ci){
+  if(COM.length<=1)return;pushUndo(`"${COM[ci].name}" 열 삭제`,snap());
+  if(isBaseCom(ci))baseTarget='exp';
+  COM.splice(ci,1);
+  if(baseTarget.startsWith('com-')){const idx=parseInt(baseTarget.replace('com-',''));if(idx>ci)baseTarget=`com-${idx-1}`;}
+  render();
+}
+function updateChart(){
+  const vals=EXP.map((d,ri)=>{const e=document.getElementById(`yi${ri}`);return e?parseFloat(e.textContent)||0:parseFloat(resData[ri]?.yield)||0;});
+  const mx=Math.max(...vals)||100;
+  const bc=document.getElementById('bars');if(!bc)return;bc.innerHTML='';
+  let bestRi=-1,bestV=0;vals.forEach((v,ri)=>{if(v>bestV){bestV=v;bestRi=ri;}});
+  vals.forEach((v,ri)=>{
+    const isTop=ri===bestRi&&v>0;const div=document.createElement('div');div.className='bar-row';
+    div.innerHTML=`<div class="bar-lbl">${esc(EXP[ri].id)}</div><div class="bar-track"><div class="bar-fill" style="width:${mx>0?Math.round(v/mx*100):0}%;background:${isTop?BARS[ri%BARS.length]:'#c8d0dc'}"></div></div><div class="bar-val">${v?v+'%':'—'}</div>`;
+    bc.appendChild(div);
+  });
+  const best=document.getElementById('best');
+  if(best)best.innerHTML=bestRi>=0&&bestV>0?`<span style="font-weight:500">${esc(EXP[bestRi].id)}</span>&nbsp;<span style="color:${BARS[bestRi%BARS.length]};font-size:14px;font-weight:500"> ${bestV}%</span>`:`<span style="color:var(--tx3)">—</span>`;
+}
+initListView();
+</script>
+</body>
+</html>
