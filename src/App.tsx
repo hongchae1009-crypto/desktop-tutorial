@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import type { MoaCard } from './types/moa'
 import { SAMPLE_CARDS } from './data/sample'
 import MoaListPage from './pages/MoaList'
@@ -9,6 +10,7 @@ type View = 'list' | 'detail'
 export default function App() {
   const [view, setView] = useState<View>('list')
   const [activeCard, setActiveCard] = useState<MoaCard | null>(null)
+  const navigate = useNavigate()
 
   const goDetail = (card?: MoaCard) => {
     setActiveCard(card ?? SAMPLE_CARDS[0])
@@ -44,7 +46,7 @@ export default function App() {
           <div className="snb-title">인벤토리</div>
           <div className="snb-item">시약 구매</div>
           <div className="snb-item">구매 현황</div>
-          <div className="snb-item">시약장</div>
+          <div className="snb-item" onClick={() => navigate('/reagent')} style={{ cursor: 'pointer' }}>시약장</div>
           <div className="snb-item">소모품</div>
           <div className="snb-item">장비</div>
           <div className="snb-title">연구노트</div>

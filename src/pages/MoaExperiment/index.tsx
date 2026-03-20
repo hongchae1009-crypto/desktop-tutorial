@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { MoaCard } from '../../types/moa';
 import MoaListView from './MoaListView';
 import MoaDetailView from './MoaDetailView';
@@ -66,6 +67,7 @@ type View = { mode: 'list' } | { mode: 'detail'; card: MoaCard };
 const MoaExperiment: React.FC = () => {
   const [view, setView] = useState<View>({ mode: 'list' });
   const [cards, setCards] = useState<MoaCard[]>(SAMPLE_CARDS);
+  const navigate = useNavigate();
 
   const goDetail = (card: MoaCard) => setView({ mode: 'detail', card });
   const goList = () => setView({ mode: 'list' });
