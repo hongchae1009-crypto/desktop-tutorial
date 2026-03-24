@@ -9,7 +9,7 @@ interface ReagentCardProps {
 }
 
 const META_ROWS: Array<{ label: string; getValue: (r: ReagentItem) => string; mono?: boolean }> = [
-  { label: '핀 번호', getValue: (r) => r.pinCode,              mono: true },
+  { label: '명칭',    getValue: (r) => r.alias ?? '—' },
   { label: 'CAS RN',  getValue: (r) => r.casNumber ?? '—',     mono: true },
   { label: '위치',    getValue: (r) => r.location },
   { label: '용량',    getValue: (r) => `${r.quantity} ${r.unit}` },
@@ -86,18 +86,17 @@ export default function ReagentCard({ reagent, selected, onSelect, onClick }: Re
             </span>
           </div>
         )}
-        <div style={{
-          fontSize: '12px', fontWeight: 500, lineHeight: 1.4,
-          display: '-webkit-box', WebkitLineClamp: 2,
-          WebkitBoxOrient: 'vertical', overflow: 'hidden',
-        }}>
-          {reagent.compoundName}
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '10px', color: 'var(--hint)', fontFamily: "'IBM Plex Mono', monospace", flexShrink: 0 }}>
+            {reagent.pinCode}
+          </span>
+          <span style={{
+            fontSize: '12px', fontWeight: 500, lineHeight: 1.4,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {reagent.compoundName}
+          </span>
         </div>
-        {reagent.alias && (
-          <div style={{ fontSize: '10px', color: 'var(--hint)', marginTop: '2px' }}>
-            {reagent.alias}
-          </div>
-        )}
       </div>
 
       {/* 바디: 구조식 + 메타 */}
