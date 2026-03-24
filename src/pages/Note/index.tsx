@@ -39,10 +39,19 @@ export default function NotePage() {
   const activeNote = notes.find((n) => n.id === activeId) ?? null;
   const sections = SNB_SECTIONS(navigate);
 
+  function generateNoteNumber(existingNotes: ResearchNote[]): string {
+    const year = new Date().getFullYear();
+    const INITIALS: Record<string, string> = { '채은': 'CE', '유진': 'YJ', '수진': 'SJ', '경': 'KP' };
+    const initials = INITIALS['채은'] ?? 'CE';
+    const seq = String(existingNotes.filter((n) => n.noteNumber.startsWith(`${initials}-${year}`)).length + 1).padStart(3, '0');
+    return `${initials}-${year}-${seq}`;
+  }
+
   function handleCreate() {
     const now = new Date().toISOString();
     const newNote: ResearchNote = {
       id: `note_${Date.now()}`,
+      noteNumber: generateNoteNumber(notes),
       title: '',
       date: new Date().toISOString().slice(0, 10),
       researcher: '채은',
@@ -50,7 +59,7 @@ export default function NotePage() {
       status: 'draft',
       tags: [],
       objective: '',
-      materials: '',
+      reagentRows: [],
       procedure: [],
       results: '',
       discussion: '',
