@@ -48,6 +48,7 @@ export interface ResearchNote {
   status: NoteStatus;
   tags: string[];
   objective: string;               // 실험 목적
+  schemeImage?: string;            // 반응 스킴 (base64 PNG)
   reagentRows: NoteReagentRow[];   // 시작물질 / 반응물 (구조화)
   procedure: ProcedureStep[];
   results: string;

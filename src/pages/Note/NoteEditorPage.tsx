@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { ResearchNote, ProcedureStep, NoteStatus, NoteReagentRow, NoteReagentRole } from '@/types/note';
 import { ROLE_LABEL, ROLE_COLOR } from '@/types/note';
 import ReagentPickerModal from './components/ReagentPickerModal';
+import SchemeCanvas from './components/SchemeCanvas';
 
 const STATUS_LABEL: Record<NoteStatus, string> = {
   draft: '작성 중',
@@ -16,6 +17,7 @@ const STATUS_COLOR: Record<NoteStatus, { bg: string; color: string; border: stri
 
 const SECTIONS = [
   { key: 'objective',    label: '실험 목적',         icon: '🎯' },
+  { key: 'scheme',       label: '반응 스킴',          icon: '⚗️' },
   { key: 'reagentRows',  label: '시작물질 / 반응물',  icon: '🧪' },
   { key: 'procedure',    label: '실험 방법',          icon: '📋' },
   { key: 'results',      label: '실험 결과',          icon: '📊' },
@@ -223,6 +225,14 @@ export default function NoteEditorPage({ note, onBack, onSave }: Props) {
               onChange={(v) => update('objective', v)}
               placeholder="이 실험의 목적과 가설을 작성하세요."
               rows={4}
+            />
+          </Section>
+
+          {/* ─── 반응 스킴 ─── */}
+          <Section id="scheme" icon="⚗️" label="반응 스킴" onVisible={() => setActiveSection('scheme')}>
+            <SchemeCanvas
+              value={draft.schemeImage}
+              onChange={(dataUrl) => update('schemeImage', dataUrl || undefined)}
             />
           </Section>
 
