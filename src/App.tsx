@@ -23,7 +23,7 @@ const SNB_SECTIONS = (activePage: string, onNavigate: (path: string) => void) =>
     { icon: '🔬', name: '장비', active: false, badge: '', onClick: undefined },
   ]},
   { label: '연구노트', items: [
-    { icon: '📓', name: '연구노트', active: false, badge: '', onClick: undefined },
+    { icon: '📓', name: '연구노트', active: activePage === 'note', badge: '', onClick: () => onNavigate('/note') },
     { icon: '🧫', name: '모아 실험', active: activePage === 'moa', badge: '', onClick: () => onNavigate('/') },
     { icon: '📰', name: '랩북 피드', active: false, badge: '11', onClick: undefined },
   ]},
