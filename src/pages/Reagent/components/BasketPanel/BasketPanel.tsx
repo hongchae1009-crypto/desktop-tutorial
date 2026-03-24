@@ -8,8 +8,6 @@
  *   API 완료 후 → 초기화
  */
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useToast } from '../Toast';
 import StructureBox from '../StructureBox';
 import { useBasketStore } from '@/store/basketStore';
 import type { Cabinet, ReagentItem } from '@/types/reagent';
@@ -23,6 +21,7 @@ interface BasketPanelProps {
   onAddToFav: () => void;
   onRemoveFromFav: () => void;
   onAddToOtherCabinet: (targetCabId: string, toAddIds: string[], alreadyCount: number) => void;
+  onSendToMoa?: () => void;
 }
 
 export default function BasketPanel({
@@ -33,10 +32,9 @@ export default function BasketPanel({
   onAddToFav,
   onRemoveFromFav,
   onAddToOtherCabinet,
+  onSendToMoa,
 }: BasketPanelProps) {
   const { items, remove, clear } = useBasketStore();
-  const { showToast } = useToast();
-  const navigate = useNavigate();
   const itemList = Object.values(items);
   const count = itemList.length;
   const [showPopover, setShowPopover] = useState(false);
@@ -52,12 +50,6 @@ export default function BasketPanel({
     } else {
       onAddToFav();
     }
-  }
-
-  function handleSendToMoa() {
-    showToast(`${count}개 시약을 모아실험으로 넘겼습니다`);
-    clear();
-    navigate('/');
   }
 
   return (
@@ -183,14 +175,16 @@ export default function BasketPanel({
           </button>
 
           <button
-            onClick={handleSendToMoa}
+            onClick={onSendToMoa}
+            disabled={!onSendToMoa || count === 0}
             style={{
               width: '100%', padding: '7px', fontSize: '11px', fontFamily: 'inherit',
-              borderRadius: 'var(--r)', cursor: 'pointer',
+              borderRadius: 'var(--r)', cursor: (onSendToMoa && count > 0) ? 'pointer' : 'not-allowed',
               border: '1px solid var(--blue)', background: 'var(--blue)', color: '#fff',
               textAlign: 'center', transition: 'background .12s',
+              opacity: (onSendToMoa && count > 0) ? 1 : 0.5,
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = '#0C447C')}
+            onMouseEnter={(e) => { if (onSendToMoa && count > 0) e.currentTarget.style.background = '#0C447C'; }}
             onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--blue)')}
           >
             모아실험으로 넘기기

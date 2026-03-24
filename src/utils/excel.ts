@@ -1,34 +1,32 @@
 /**
- * Excel 유틸리티 (SheetJS/xlsx)
- * 시약 데이터 내보내기 / 템플릿 다운로드 / 엑셀 파싱
+ * Excel/CSV 유틸리티 (xlsx 없이 CSV로 구현)
  */
 import type { ReagentItem } from '@/types/reagent';
 
-// Dynamic import to handle cases where xlsx might not be installed
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function getXLSX(): Promise<any | null> {
-  try {
-    // @ts-ignore — xlsx may not be installed; graceful fallback below
-    const XLSX = await import('xlsx');
-    return XLSX;
-  } catch {
-    return null;
-  }
-}
-
 const CAS_RE = /^\d{2,7}-\d{2}-\d$/;
 
-/**
- * 시약 목록을 엑셀 파일로 다운로드
- */
-export async function downloadExcel(reagents: ReagentItem[], filename = '시약_목록.xlsx'): Promise<void> {
-  const XLSX = await getXLSX();
-  if (!XLSX) {
-    alert('xlsx 라이브러리를 불러올 수 없습니다.');
-    return;
-  }
+function downloadCSV(rows: Record<string, unknown>[], filename: string) {
+  if (rows.length === 0) return;
+  const headers = Object.keys(rows[0]);
+  const csvRows = [
+    headers.join(','),
+    ...rows.map(row =>
+      headers.map(h => {
+        const val = String(row[h] ?? '').replace(/"/g, '""');
+        return val.includes(',') || val.includes('\n') || val.includes('"') ? `"${val}"` : val;
+      }).join(',')
+    ),
+  ];
+  const blob = new Blob(['\uFEFF' + csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
 
-  const rows = reagents.map((r) => ({
+export function downloadExcel(reagents: ReagentItem[], filename = '시약_목록.csv'): void {
+  const rows = reagents.map(r => ({
     '핀번호': r.pinCode,
     '컴파운드명': r.compoundName,
     '별칭': r.alias ?? '',
@@ -44,49 +42,25 @@ export async function downloadExcel(reagents: ReagentItem[], filename = '시약_
     '주의사항': r.notes ?? '',
     '등록자': r.registeredBy,
   }));
-
-  const ws = XLSX.utils.json_to_sheet(rows);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, '시약 목록');
-  XLSX.writeFile(wb, filename);
+  downloadCSV(rows, filename);
 }
 
-/**
- * 일괄 등록용 템플릿 엑셀 다운로드
- */
-export async function downloadTemplate(): Promise<void> {
-  const XLSX = await getXLSX();
-  if (!XLSX) {
-    // CSV fallback
-    const csv = '컴파운드명,CAS 번호,용량,단위,위치,공급자,제품번호\n4-Aminophenol,123-30-8,500,g,201,Sigma-Aldrich,A3861\n';
-    const a = document.createElement('a');
-    a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
-    a.download = '시약_일괄등록_템플릿.csv';
-    a.click();
-    return;
-  }
-
-  const template = [
-    {
-      '컴파운드명': '4-Aminophenol',
-      'CAS 번호': '123-30-8',
-      '용량': 500,
-      '단위': 'g',
-      '위치': '201',
-      '공급자': 'Sigma-Aldrich',
-      '제품번호': 'A3861',
-      '핀번호': '',
-      'SMILES': '',
-      'MW': 109.13,
-      '순도': '',
-      '주의사항': '',
-    },
-  ];
-
-  const ws = XLSX.utils.json_to_sheet(template);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, '시약 등록 템플릿');
-  XLSX.writeFile(wb, '시약_일괄등록_템플릿.xlsx');
+export function downloadTemplate(): void {
+  const rows = [{
+    '컴파운드명': '4-Aminophenol',
+    'CAS 번호': '123-30-8',
+    '용량': 500,
+    '단위': 'g',
+    '위치': '201',
+    '공급자': 'Sigma-Aldrich',
+    '제품번호': 'A3861',
+    '핀번호': '',
+    'SMILES': '',
+    'MW': 109.13,
+    '순도': '',
+    '주의사항': '',
+  }];
+  downloadCSV(rows, '시약_일괄등록_템플릿.csv');
 }
 
 export interface ParsedReagentRow {
@@ -106,76 +80,61 @@ export interface ParsedReagentRow {
   _rowIndex?: number;
 }
 
-/**
- * 엑셀 파일 파싱 → 시약 row 배열 반환
- */
 export async function parseExcel(file: File): Promise<ParsedReagentRow[]> {
-  const XLSX = await getXLSX();
-  if (!XLSX) {
-    // mock 데이터 반환
-    return [
-      { compoundName: '4-Aminophenol', casNumber: '123-30-8', quantity: 500, unit: 'g', location: '201', _casValid: true, _rowIndex: 1 },
-      { compoundName: 'Triethylamine', casNumber: '121-44-8', quantity: 1000, unit: 'mL', location: '102', _casValid: true, _rowIndex: 2 },
-      { compoundName: 'Benzaldehyde', casNumber: '100-52-7BAD', quantity: 100, unit: 'mL', location: '103', _casValid: false, _rowIndex: 3 },
-    ];
-  }
-
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
-        const wb = XLSX.read(ev.target!.result as ArrayBuffer, { type: 'array' });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const rawRows: Record<string, unknown>[] = XLSX.utils.sheet_to_json(ws, { defval: '' });
+        const text = ev.target?.result as string;
+        const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+        if (lines.length < 2) { resolve([]); return; }
 
         const colMap: Record<string, keyof ParsedReagentRow> = {
-          '컴파운드명': 'compoundName',
-          'compound': 'compoundName',
-          'compoundname': 'compoundName',
-          'cas 번호': 'casNumber',
-          'cas번호': 'casNumber',
-          'cas': 'casNumber',
-          '용량': 'quantity',
-          'quantity': 'quantity',
-          '단위': 'unit',
-          'unit': 'unit',
-          '위치': 'location',
-          'location': 'location',
-          '공급자': 'supplier',
-          'supplier': 'supplier',
-          '제품번호': 'productNumber',
-          'productnumber': 'productNumber',
-          '핀번호': 'pinCode',
-          'pincode': 'pinCode',
-          'smiles': 'smiles',
-          'mw': 'mw',
-          '순도': 'purity',
-          '주의사항': 'notes',
+          '컴파운드명': 'compoundName', 'compound': 'compoundName', 'compoundname': 'compoundName',
+          'cas 번호': 'casNumber', 'cas번호': 'casNumber', 'cas': 'casNumber',
+          '용량': 'quantity', 'quantity': 'quantity',
+          '단위': 'unit', 'unit': 'unit',
+          '위치': 'location', 'location': 'location',
+          '공급자': 'supplier', 'supplier': 'supplier',
+          '제품번호': 'productNumber', 'productnumber': 'productNumber',
+          '핀번호': 'pinCode', 'pincode': 'pinCode',
+          'smiles': 'smiles', 'mw': 'mw',
+          '순도': 'purity', '주의사항': 'notes',
         };
 
-        const parsed: ParsedReagentRow[] = rawRows.map((row, i) => {
-          const result: ParsedReagentRow = { _rowIndex: i + 1 };
-          for (const [rawKey, value] of Object.entries(row)) {
-            const normalizedKey = rawKey.trim().toLowerCase();
-            const mapped = colMap[normalizedKey];
-            if (mapped) {
-              if (mapped === 'quantity' || mapped === 'mw') {
-                result[mapped] = typeof value === 'number' ? value : parseFloat(String(value)) || undefined;
-              } else {
-                (result as Record<string, unknown>)[mapped] = String(value).trim();
-              }
-            }
+        const parseLine = (line: string): string[] => {
+          const result: string[] = [];
+          let cur = '', inQuote = false;
+          for (let i = 0; i < line.length; i++) {
+            if (line[i] === '"') { inQuote = !inQuote; }
+            else if (line[i] === ',' && !inQuote) { result.push(cur); cur = ''; }
+            else { cur += line[i]; }
           }
-          result._casValid = !result.casNumber || CAS_RE.test(result.casNumber.trim());
+          result.push(cur);
           return result;
-        });
+        };
 
+        const headers = parseLine(lines[0]).map(h => h.toLowerCase());
+        const parsed: ParsedReagentRow[] = lines.slice(1).map((line, i) => {
+          const vals = parseLine(line);
+          const row: ParsedReagentRow = { _rowIndex: i + 1 };
+          headers.forEach((h, j) => {
+            const key = colMap[h];
+            if (!key) return;
+            const val = vals[j]?.trim() ?? '';
+            if (key === 'quantity' || key === 'mw') {
+              (row as Record<string, unknown>)[key] = parseFloat(val) || undefined;
+            } else {
+              (row as Record<string, unknown>)[key] = val;
+            }
+          });
+          row._casValid = !row.casNumber || CAS_RE.test(row.casNumber.trim());
+          return row;
+        });
         resolve(parsed);
-      } catch (err) {
-        reject(err);
-      }
+      } catch (err) { reject(err); }
     };
     reader.onerror = reject;
-    reader.readAsArrayBuffer(file);
+    reader.readAsText(file, 'utf-8');
   });
 }

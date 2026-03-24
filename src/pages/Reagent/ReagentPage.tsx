@@ -34,6 +34,7 @@ import BasketPanel          from './components/BasketPanel/BasketPanel';
 import ReagentDataModal     from './components/ReagentDataModal/ReagentDataModal';
 import RegisterModal        from './components/RegisterModal/RegisterModal';
 import AddCabinetModal      from './components/AddCabinetModal/AddCabinetModal';
+import SendToMoaModal       from './components/SendToMoaModal/SendToMoaModal';
 
 const PER_PAGE_CARD  = 9;
 const PER_PAGE_TABLE = 20;
@@ -90,6 +91,7 @@ function ReagentPageInner() {
   const [modalId, setModalId] = useState<string | null>(null);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [showAddCabinetModal, setShowAddCabinetModal] = useState(false);
+  const [sendToMoaOpen, setSendToMoaOpen] = useState(false);
 
   const modalReagent = reagents.find((r) => r.id === modalId) ?? null;
 
@@ -469,6 +471,7 @@ function ReagentPageInner() {
               onAddToFav={handleAddToFav}
               onRemoveFromFav={handleRemoveFromFav}
               onAddToOtherCabinet={handleAddToOtherCabinet}
+              onSendToMoa={() => setSendToMoaOpen(true)}
             />
           </div>
         </main>
@@ -504,6 +507,19 @@ function ReagentPageInner() {
           onCreated={handleCabinetCreated}
         />
       )}
+
+      {/* ── 모아실험으로 넘기기 모달 ── */}
+      <SendToMoaModal
+        open={sendToMoaOpen}
+        basket={basket.items}
+        onClose={() => setSendToMoaOpen(false)}
+        onSuccess={(_moaId) => {
+          setSendToMoaOpen(false);
+          basket.clear();
+          showToast('모아실험으로 넘겼습니다');
+          navigate('/');
+        }}
+      />
     </div>
   );
 }
