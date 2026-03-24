@@ -212,8 +212,19 @@ export default function QuantTable({
                   {/* ④ 컴파운드 */}
                   <td style={{ padding: 0, verticalAlign: 'middle' }}>
                     <div style={{ padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '1px' }}>
-                      <div style={{ fontSize: '12px', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {r.compoundName}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {r.compoundName}
+                        </div>
+                        {r.isReference && (
+                          <span style={{
+                            fontSize: '9px', background: '#FAEEDA', color: '#854F0B',
+                            padding: '1px 6px', borderRadius: '6px', fontWeight: 500,
+                            border: '0.5px solid #EF9F27', flexShrink: 0,
+                          }}>
+                            참조 · {r.originCabinetName}
+                          </span>
+                        )}
                       </div>
                       {r.alias && (
                         <div style={{ fontSize: '10px', color: 'var(--hint)', marginTop: '1px' }}>

@@ -35,6 +35,7 @@ import ReagentDataModal     from './components/ReagentDataModal/ReagentDataModal
 import RegisterModal        from './components/RegisterModal/RegisterModal';
 import AddCabinetModal      from './components/AddCabinetModal/AddCabinetModal';
 import SendToMoaModal       from './components/SendToMoaModal/SendToMoaModal';
+import PrintModal           from './components/PrintModal/PrintModal';
 
 const PER_PAGE_CARD  = 9;
 const PER_PAGE_TABLE = 20;
@@ -92,6 +93,7 @@ function ReagentPageInner() {
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [showAddCabinetModal, setShowAddCabinetModal] = useState(false);
   const [sendToMoaOpen, setSendToMoaOpen] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);
 
   const modalReagent = reagents.find((r) => r.id === modalId) ?? null;
 
@@ -327,6 +329,21 @@ function ReagentPageInner() {
     );
   }
 
+  // ── 인쇄 대상: 장바구니 선택 시약 우선, 없으면 현재 탭 전체 ──
+  const printTargets = useMemo(() => {
+    const basketIds = Object.keys(basket.items);
+    if (basketIds.length > 0) return reagents.filter((r) => basketIds.includes(r.id));
+    return filtered;
+  }, [basket.items, reagents, filtered]);
+
+  function handlePrint() {
+    if (printTargets.length === 0) {
+      showToast('인쇄할 시약이 없어요. 시약을 선택하거나 검색해주세요');
+      return;
+    }
+    setShowPrintModal(true);
+  }
+
   function handleModalDisuse(id: string) {
     setReagents((prev) =>
       prev.map((r) => r.id === id ? { ...r, isActive: false, updatedAt: new Date() } : r),
@@ -418,6 +435,7 @@ function ReagentPageInner() {
             searchValue={query}
             onSearch={handleSearch}
             onRegister={() => setShowRegisterModal(true)}
+            onPrint={handlePrint}
             reagents={sorted}
           />
 
@@ -517,6 +535,14 @@ function ReagentPageInner() {
           onCreated={handleCabinetCreated}
         />
       )}
+
+      {/* ── A4 인쇄 모달 ── */}
+      <PrintModal
+        open={showPrintModal}
+        reagents={printTargets}
+        cabinetName={cabinets.find((c) => c.id === activeCabId)?.name ?? ''}
+        onClose={() => setShowPrintModal(false)}
+      />
 
       {/* ── 모아실험으로 넘기기 모달 ── */}
       <SendToMoaModal
