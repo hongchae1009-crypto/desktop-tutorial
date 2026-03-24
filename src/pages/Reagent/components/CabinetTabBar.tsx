@@ -1,8 +1,9 @@
-import type { Cabinet } from '@/types/reagent';
+import type { Cabinet, ReagentItem } from '@/types/reagent';
 import { useToast } from './Toast';
 
 interface CabinetTabBarProps {
   cabinets: Cabinet[];
+  reagents: ReagentItem[];
   activeCabinetId: string;
   onTabChange: (id: string) => void;
   onAddCabinet: () => void;
@@ -10,6 +11,7 @@ interface CabinetTabBarProps {
 
 export default function CabinetTabBar({
   cabinets,
+  reagents,
   activeCabinetId,
   onTabChange,
   onAddCabinet,
@@ -17,6 +19,12 @@ export default function CabinetTabBar({
   const { showToast } = useToast();
   const favorite = cabinets.find((c) => c.isFavorite);
   const regular  = cabinets.filter((c) => !c.isFavorite);
+
+  // 실시간 시약 개수 집계
+  const countMap: Record<string, number> = {};
+  reagents.forEach((r) => { countMap[r.cabinetId] = (countMap[r.cabinetId] ?? 0) + 1; });
+  const favCount = reagents.filter((r) => r.isFavorite).length;
+  const getCount = (cab: Cabinet) => cab.isFavorite ? favCount : (countMap[cab.id] ?? 0);
 
   function tabStyle(cab: Cabinet): React.CSSProperties {
     const isActive = cab.id === activeCabinetId;
@@ -81,7 +89,7 @@ export default function CabinetTabBar({
           }}
         >
           ⭐ {favorite.name}
-          <span style={countStyle(favorite)}>{favorite.count}</span>
+          <span style={countStyle(favorite)}>{getCount(favorite)}</span>
         </button>
       )}
 
@@ -102,7 +110,7 @@ export default function CabinetTabBar({
         >
           <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: cab.color, flexShrink: 0, display: 'inline-block' }} />
           {cab.name}
-          <span style={countStyle(cab)}>{cab.count}</span>
+          <span style={countStyle(cab)}>{getCount(cab)}</span>
         </button>
       ))}
 

@@ -8,14 +8,14 @@ interface StructureBoxProps {
 }
 
 const HEIGHTS: Record<NonNullable<StructureBoxProps['variant']>, string> = {
-  card:   '108px',
+  card:   '120px',
   table:  '38px',
   modal:  '160px',
   basket: '58px',
 };
 
 const WIDTHS: Record<NonNullable<StructureBoxProps['variant']>, string> = {
-  card:   '88px',
+  card:   '110px',
   table:  '56px',
   modal:  '100%',
   basket: '100%',

@@ -108,7 +108,7 @@ function ReagentPageInner() {
       const cab = cabinets.find((c) => c.id === activeCabId);
       if (!cab) return true;
       if (cab.isFavorite) return r.isFavorite;
-      return r.cabinetId === activeCabId || (r.referencedIn && r.referencedIn.includes(activeCabId));
+      return r.cabinetId === activeCabId;
     });
 
     if (!kw) return cabinetFiltered;
@@ -414,6 +414,7 @@ function ReagentPageInner() {
 
           <CabinetTabBar
             cabinets={cabinets}
+            reagents={reagents}
             activeCabinetId={activeCabId}
             onTabChange={(id) => { setActiveCabId(id); setPage(1); }}
             onAddCabinet={() => setShowAddCabinetModal(true)}

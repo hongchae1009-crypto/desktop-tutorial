@@ -9,10 +9,8 @@ interface ReagentCardProps {
 }
 
 const META_ROWS: Array<{ label: string; getValue: (r: ReagentItem) => string; mono?: boolean }> = [
-  { label: '핀 번호', getValue: (r) => r.pinCode,                         mono: true },
-  { label: 'CAS RN',  getValue: (r) => r.casNumber ?? '—',                mono: true },
-  { label: 'MW',      getValue: (r) => r.mw != null ? `${r.mw} g/mol` : '—' },
-  { label: '순도',    getValue: (r) => r.purity != null ? String(r.purity) : '—' },
+  { label: '핀 번호', getValue: (r) => r.pinCode,              mono: true },
+  { label: 'CAS RN',  getValue: (r) => r.casNumber ?? '—',     mono: true },
   { label: '위치',    getValue: (r) => r.location },
   { label: '용량',    getValue: (r) => `${r.quantity} ${r.unit}` },
   { label: '공급자',  getValue: (r) => r.supplier ?? '—' },
@@ -71,23 +69,23 @@ export default function ReagentCard({ reagent, selected, onSelect, onClick }: Re
         />
       </div>
 
-      {/* 참조시약 배지 */}
-      {reagent.isReference && (
-        <div style={{
-          position: 'absolute', top: '8px', left: '8px', zIndex: 2,
-          fontSize: '9px', background: '#FAEEDA', color: '#854F0B',
-          padding: '1px 6px', borderRadius: '6px', fontWeight: 500,
-        }}>
-          참조
-        </div>
-      )}
-
       {/* 컴파운드명 */}
       <div style={{
-        padding: '10px 30px 8px 12px',
+        padding: '8px 30px 8px 12px',
         borderBottom: '1px solid var(--border)',
         minHeight: '46px',
       }}>
+        {reagent.isReference && (
+          <div style={{ marginBottom: '4px' }}>
+            <span style={{
+              fontSize: '9px', background: '#FAEEDA', color: '#854F0B',
+              padding: '1px 6px', borderRadius: '6px', fontWeight: 500,
+              border: '0.5px solid #EF9F27',
+            }}>
+              참조 · {reagent.originCabinetName}
+            </span>
+          </div>
+        )}
         <div style={{
           fontSize: '12px', fontWeight: 500, lineHeight: 1.4,
           display: '-webkit-box', WebkitLineClamp: 2,
