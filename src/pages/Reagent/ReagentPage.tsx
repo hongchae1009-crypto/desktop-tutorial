@@ -107,7 +107,7 @@ function ReagentPageInner() {
     const cabinetFiltered = reagents.filter((r) => {
       const cab = cabinets.find((c) => c.id === activeCabId);
       if (!cab) return true;
-      if (cab.isFavorite) return r.isFavorite;
+      if (cab.isFavorite) return r.isFavorite && !r.isReference;
       return r.cabinetId === activeCabId;
     });
 
@@ -245,22 +245,31 @@ function ReagentPageInner() {
   // ── 자주쓰는 시약장 추가/제거 ─────────────────────────────────
   function handleAddToFav() {
     const basketIds = Object.keys(basket.items);
+    // 참조 시약이면 원본 ID로 교체
+    const targetIds = basketIds.map((id) => {
+      const r = reagents.find((x) => x.id === id);
+      return r?.isReference && r.originId ? r.originId : id;
+    });
     const updated = reagents.map((r) =>
-      basketIds.includes(r.id) ? { ...r, isFavorite: true } : r,
+      targetIds.includes(r.id) ? { ...r, isFavorite: true } : r,
     );
     setReagents(updated);
     basket.clear();
-    showToast(`${basketIds.length}개 시약을 자주쓰는 시약장에 추가했습니다`);
+    showToast(`${targetIds.length}개 시약을 자주쓰는 시약장에 추가했습니다`);
   }
 
   function handleRemoveFromFav() {
     const basketIds = Object.keys(basket.items);
+    const targetIds = basketIds.map((id) => {
+      const r = reagents.find((x) => x.id === id);
+      return r?.isReference && r.originId ? r.originId : id;
+    });
     const updated = reagents.map((r) =>
-      basketIds.includes(r.id) ? { ...r, isFavorite: false } : r,
+      targetIds.includes(r.id) ? { ...r, isFavorite: false } : r,
     );
     setReagents(updated);
     basket.clear();
-    showToast(`${basketIds.length}개 시약을 자주쓰는 시약장에서 제거했습니다`);
+    showToast(`${targetIds.length}개 시약을 자주쓰는 시약장에서 제거했습니다`);
   }
 
   // ── 다른 시약장에 추가 (참조 시약 생성) ──────────────────────
