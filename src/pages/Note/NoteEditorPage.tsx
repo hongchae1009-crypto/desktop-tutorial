@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import type { ResearchNote, ProcedureStep, NoteStatus, NoteReagentRow, NoteReagentRole } from '@/types/note';
-import { ROLE_LABEL, ROLE_COLOR } from '@/types/note';
-import ReagentPickerModal from './components/ReagentPickerModal';
+import type { ResearchNote, ProcedureStep, NoteStatus, NoteReagentRow } from '@/types/note';
+import MaterialsTable from './components/MaterialsTable';
 import SchemeCanvas from './components/SchemeCanvas';
 
 const STATUS_LABEL: Record<NoteStatus, string> = {
@@ -73,24 +72,9 @@ export default function NoteEditorPage({ note, onBack, onSave }: Props) {
     update('procedure', next);
   }
 
-  // 시약 행
-  function addReagentRows(rows: NoteReagentRow[]) {
-    update('reagentRows', [...draft.reagentRows, ...rows]);
-  }
-  function updateReagentRow(id: string, patch: Partial<NoteReagentRow>) {
-    update('reagentRows', draft.reagentRows.map((r) => r.id === id ? { ...r, ...patch } : r));
-  }
-  function removeReagentRow(id: string) {
-    update('reagentRows', draft.reagentRows.filter((r) => r.id !== id));
-  }
-  function addEmptyReagentRow() {
-    const row: NoteReagentRow = {
-      id: `rr_${Date.now()}`,
-      role: 'reagent',
-      compoundName: '',
-      amount: '',
-    };
-    update('reagentRows', [...draft.reagentRows, row]);
+  // 시약 행 (MaterialsTable에서 통합 관리)
+  function handleReagentRowsChange(rows: NoteReagentRow[]) {
+    update('reagentRows', rows);
   }
 
   const sc = STATUS_COLOR[draft.status];
@@ -237,15 +221,12 @@ export default function NoteEditorPage({ note, onBack, onSave }: Props) {
           </Section>
 
           {/* ─── 시작물질 / 반응물 ─── */}
-          <MaterialsSection
-            id="reagentRows"
-            rows={draft.reagentRows}
-            onAddRows={addReagentRows}
-            onUpdate={updateReagentRow}
-            onRemove={removeReagentRow}
-            onAddEmpty={addEmptyReagentRow}
-            onVisible={() => setActiveSection('reagentRows')}
-          />
+          <Section id="reagentRows" icon="🧪" label="시작물질 / 반응물" onVisible={() => setActiveSection('reagentRows')}>
+            <MaterialsTable
+              rows={draft.reagentRows}
+              onChange={handleReagentRowsChange}
+            />
+          </Section>
 
           {/* ─── 실험 방법 ─── */}
           <Section id="procedure" icon="📋" label="실험 방법" onVisible={() => setActiveSection('procedure')}>
@@ -312,280 +293,6 @@ export default function NoteEditorPage({ note, onBack, onSave }: Props) {
         </div>
       </div>
     </div>
-  );
-}
-
-// ─── 시작물질 / 반응물 섹션 ──────────────────────────────────────────────────
-
-function MaterialsSection({
-  id, rows, onAddRows, onUpdate, onRemove, onAddEmpty, onVisible,
-}: {
-  id: string;
-  rows: NoteReagentRow[];
-  onAddRows: (rows: NoteReagentRow[]) => void;
-  onUpdate: (id: string, patch: Partial<NoteReagentRow>) => void;
-  onRemove: (id: string) => void;
-  onAddEmpty: () => void;
-  onVisible?: () => void;
-}) {
-  const [showPicker, setShowPicker] = useState(false);
-
-  return (
-    <div
-      id={`section-${id}`}
-      style={{ background: 'var(--bg)', borderRadius: '12px', border: '1px solid var(--bd)', padding: '20px 24px' }}
-      onMouseEnter={onVisible}
-    >
-      {/* 섹션 헤더 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-        <span style={{ fontSize: '15px' }}>🧪</span>
-        <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--tx)' }}>시작물질 / 반응물</span>
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: '6px' }}>
-          <button
-            onClick={() => setShowPicker(true)}
-            style={{
-              padding: '5px 12px', borderRadius: '7px', fontSize: '11px', cursor: 'pointer',
-              border: '1px solid var(--blue)', background: 'var(--blue-bg)',
-              color: 'var(--blue)', fontWeight: 500,
-              display: 'flex', alignItems: 'center', gap: '4px',
-            }}
-          >
-            <span>📦</span> 시약장에서 추가
-          </button>
-          <button
-            onClick={onAddEmpty}
-            style={{
-              padding: '5px 12px', borderRadius: '7px', fontSize: '11px', cursor: 'pointer',
-              border: '1px solid var(--bd2)', background: 'transparent', color: 'var(--tx3)',
-            }}
-          >
-            + 직접 입력
-          </button>
-        </div>
-      </div>
-
-      {/* 테이블 */}
-      {rows.length === 0 ? (
-        <div style={{
-          padding: '28px', border: '1.5px dashed var(--bd2)', borderRadius: '8px',
-          textAlign: 'center', color: 'var(--tx3)', fontSize: '12px',
-        }}>
-          <div style={{ fontSize: '24px', marginBottom: '6px' }}>🧫</div>
-          시약장에서 시약을 추가하거나 직접 입력하세요
-        </div>
-      ) : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
-            <thead>
-              <tr style={{ background: 'var(--bg2)', borderBottom: '1px solid var(--bd)' }}>
-                {['역할', '화합물명', 'CAS RN', 'MW', '양', 'mmol', 'eq', '비고', ''].map((h) => (
-                  <th key={h} style={{
-                    padding: '6px 8px', textAlign: 'left', fontWeight: 600,
-                    color: 'var(--tx3)', whiteSpace: 'nowrap',
-                    fontSize: '10px', letterSpacing: '.03em',
-                  }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row, idx) => (
-                <MaterialsRow
-                  key={row.id}
-                  row={row}
-                  isOdd={idx % 2 === 1}
-                  onChange={(patch) => onUpdate(row.id, patch)}
-                  onRemove={() => onRemove(row.id)}
-                />
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* 역할별 범례 */}
-      {rows.length > 0 && (
-        <div style={{ display: 'flex', gap: '8px', marginTop: '10px', flexWrap: 'wrap' }}>
-          {(Object.keys(ROLE_LABEL) as NoteReagentRole[]).map((r) => {
-            const rc = ROLE_COLOR[r];
-            const count = rows.filter((row) => row.role === r).length;
-            if (count === 0) return null;
-            return (
-              <span key={r} style={{
-                fontSize: '10px', padding: '2px 8px', borderRadius: '10px',
-                background: rc.bg, color: rc.color, border: `0.5px solid ${rc.border}`,
-              }}>
-                {ROLE_LABEL[r]} {count}
-              </span>
-            );
-          })}
-        </div>
-      )}
-
-      {showPicker && (
-        <ReagentPickerModal
-          onAdd={onAddRows}
-          onClose={() => setShowPicker(false)}
-        />
-      )}
-    </div>
-  );
-}
-
-// ─── 시약 행 ─────────────────────────────────────────────────────────────────
-
-function MaterialsRow({ row, isOdd, onChange, onRemove }: {
-  row: NoteReagentRow;
-  isOdd: boolean;
-  onChange: (patch: Partial<NoteReagentRow>) => void;
-  onRemove: () => void;
-}) {
-  const rc = ROLE_COLOR[row.role];
-  const fromReagent = !!row.reagentId;
-
-  const cellStyle: React.CSSProperties = {
-    padding: '4px 4px',
-    borderBottom: '1px solid var(--bd)',
-    background: isOdd ? 'var(--bg2)' : 'transparent',
-    verticalAlign: 'middle',
-  };
-
-  const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '4px 6px', fontSize: '11px',
-    border: '1px solid transparent', borderRadius: '5px',
-    background: 'transparent', color: 'var(--tx)',
-    fontFamily: 'inherit', outline: 'none',
-    transition: 'border-color .12s, background .12s',
-  };
-
-  return (
-    <tr>
-      {/* 역할 */}
-      <td style={{ ...cellStyle, minWidth: 80 }}>
-        <select
-          value={row.role}
-          onChange={(e) => onChange({ role: e.target.value as NoteReagentRole })}
-          style={{
-            padding: '3px 4px', fontSize: '10px', borderRadius: '8px', cursor: 'pointer',
-            border: `1px solid ${rc.border}`, background: rc.bg, color: rc.color,
-            fontWeight: 600, outline: 'none',
-          }}
-        >
-          {(Object.keys(ROLE_LABEL) as NoteReagentRole[]).map((r) => (
-            <option key={r} value={r}>{ROLE_LABEL[r]}</option>
-          ))}
-        </select>
-      </td>
-
-      {/* 화합물명 */}
-      <td style={{ ...cellStyle, minWidth: 140 }}>
-        <div>
-          <input
-            value={row.compoundName}
-            onChange={(e) => onChange({ compoundName: e.target.value })}
-            placeholder="화합물명"
-            style={{ ...inputStyle }}
-            onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--blue-bd)'; e.currentTarget.style.background = 'var(--bg)'; }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.background = 'transparent'; }}
-          />
-          {fromReagent && (
-            <div style={{ fontSize: '9px', color: 'var(--tx3)', paddingLeft: '6px', marginTop: '-1px' }}>
-              📦 {row.cabinetName ?? '시약장'}
-            </div>
-          )}
-        </div>
-      </td>
-
-      {/* CAS RN */}
-      <td style={{ ...cellStyle, minWidth: 100 }}>
-        <input
-          value={row.casNumber ?? ''}
-          onChange={(e) => onChange({ casNumber: e.target.value })}
-          placeholder="—"
-          style={{ ...inputStyle, fontFamily: 'monospace', fontSize: '10px' }}
-          onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--blue-bd)'; e.currentTarget.style.background = 'var(--bg)'; }}
-          onBlur={(e) => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.background = 'transparent'; }}
-        />
-      </td>
-
-      {/* MW */}
-      <td style={{ ...cellStyle, minWidth: 60 }}>
-        <input
-          type="number"
-          value={row.mw ?? ''}
-          onChange={(e) => onChange({ mw: e.target.value ? parseFloat(e.target.value) : undefined })}
-          placeholder="—"
-          style={{ ...inputStyle, textAlign: 'right' }}
-          onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--blue-bd)'; e.currentTarget.style.background = 'var(--bg)'; }}
-          onBlur={(e) => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.background = 'transparent'; }}
-        />
-      </td>
-
-      {/* 양 */}
-      <td style={{ ...cellStyle, minWidth: 80 }}>
-        <input
-          value={row.amount}
-          onChange={(e) => onChange({ amount: e.target.value })}
-          placeholder="예: 500 mg"
-          style={{ ...inputStyle }}
-          onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--blue-bd)'; e.currentTarget.style.background = 'var(--bg)'; }}
-          onBlur={(e) => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.background = 'transparent'; }}
-        />
-      </td>
-
-      {/* mmol */}
-      <td style={{ ...cellStyle, minWidth: 60 }}>
-        <input
-          type="number"
-          value={row.mmol ?? ''}
-          onChange={(e) => onChange({ mmol: e.target.value ? parseFloat(e.target.value) : undefined })}
-          placeholder="—"
-          style={{ ...inputStyle, textAlign: 'right' }}
-          onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--blue-bd)'; e.currentTarget.style.background = 'var(--bg)'; }}
-          onBlur={(e) => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.background = 'transparent'; }}
-        />
-      </td>
-
-      {/* eq */}
-      <td style={{ ...cellStyle, minWidth: 50 }}>
-        <input
-          type="number"
-          value={row.eq ?? ''}
-          onChange={(e) => onChange({ eq: e.target.value ? parseFloat(e.target.value) : undefined })}
-          placeholder="—"
-          step="0.1"
-          style={{ ...inputStyle, textAlign: 'right' }}
-          onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--blue-bd)'; e.currentTarget.style.background = 'var(--bg)'; }}
-          onBlur={(e) => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.background = 'transparent'; }}
-        />
-      </td>
-
-      {/* 비고 */}
-      <td style={{ ...cellStyle, minWidth: 80 }}>
-        <input
-          value={row.notes ?? ''}
-          onChange={(e) => onChange({ notes: e.target.value })}
-          placeholder="—"
-          style={{ ...inputStyle }}
-          onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--blue-bd)'; e.currentTarget.style.background = 'var(--bg)'; }}
-          onBlur={(e) => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.background = 'transparent'; }}
-        />
-      </td>
-
-      {/* 삭제 */}
-      <td style={{ ...cellStyle, width: 28, textAlign: 'center' }}>
-        <button
-          onClick={onRemove}
-          style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: 'var(--tx3)', fontSize: '14px', padding: '2px 4px',
-            borderRadius: '4px', lineHeight: 1,
-            transition: 'color .12s',
-          }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#c0392b'; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--tx3)'; }}
-        >×</button>
-      </td>
-    </tr>
   );
 }
 

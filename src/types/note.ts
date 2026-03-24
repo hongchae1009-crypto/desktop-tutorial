@@ -18,18 +18,30 @@ export const ROLE_COLOR: Record<NoteReagentRole, { bg: string; color: string; bo
   other:    { bg: '#F3F4F6', color: '#374151', border: '#D1D5DB' },
 };
 
+export type WeightUnit = 'mg' | 'g';
+export type VolumeUnit = 'μL' | 'mL' | 'L';
+export type MolUnit = 'μmol' | 'mmol' | 'mol';
+
 export interface NoteReagentRow {
   id: string;
-  reagentId?: string;       // ReagentItem.id (시약장에서 불러온 경우)
+  reagentId?: string;         // 시약장 ReagentItem.id
   cabinetName?: string;
-  role: NoteReagentRole;
+  pinCode?: string;
+  role?: NoteReagentRole;     // 배지 표시용
   compoundName: string;
   alias?: string;
   casNumber?: string;
-  mw?: number;
-  amount: string;           // "2.5 g", "10 mL", "225 μL" 등
-  mmol?: number;
-  eq?: number;              // 제한 시약 대비 당량
+  mw?: number;                // g/mol
+  density?: number;           // g/mL (0 = 해당없음/고체)
+  weight?: number;            // weightUnit 단위
+  weightUnit: WeightUnit;
+  volume?: number;            // volumeUnit 단위
+  volumeUnit: VolumeUnit;
+  mol?: number;               // molUnit 단위
+  molUnit: MolUnit;
+  atm: number;                // 기본 1
+  eq?: number;                // 자동계산 (저장용)
+  isLimiting: boolean;        // 제한 시약 여부 (라디오)
   notes?: string;
 }
 
