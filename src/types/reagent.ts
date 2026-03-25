@@ -49,6 +49,7 @@ export interface ReagentItem {
   compoundName: string;
   alias?: string;
   smiles?: string;
+  inchiKey?: string;         // 분자 고유 식별자 (중복 제거용)
   casNumber?: string;
   mw?: number;
   mp?: number | string;

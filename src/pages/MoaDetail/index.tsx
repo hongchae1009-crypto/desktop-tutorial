@@ -32,6 +32,13 @@ export type ResRow = {
   purPct: string; meth: string
   atts: { name: string; dataUrl: string }[]
   sides: SideRow[]
+  // 분석 데이터 (Phase 2)
+  productSmiles?: string
+  lcmsMz?: string
+  nmrSolvent?: string
+  hplcRetention?: string
+  chromatographySystem?: string
+  rfValue?: string
 }
 export type SideRow = {
   id: number

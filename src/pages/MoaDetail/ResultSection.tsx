@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import type { Exp, Com, BaseTarget } from '../../types/moa'
 import type { ResRow, SideRow } from './index'
 
+type AnalyticsKey = 'productSmiles' | 'lcmsMz' | 'nmrSolvent' | 'hplcRetention' | 'chromatographySystem' | 'rfValue'
+
 interface Props {
   exp: Exp[]
   com: Com[]
@@ -14,6 +16,11 @@ interface Props {
 let sideIdCounter = 1
 
 export default function ResultSection({ exp, resRows, setResRows, onEdit }: Props) {
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set())
+
+  const toggleExpand = (ri: number) =>
+    setExpandedRows(prev => { const s = new Set(prev); s.has(ri) ? s.delete(ri) : s.add(ri); return s })
+
   const updateRow = (ri: number, field: keyof ResRow, val: string) => {
     setResRows(prev => prev.map((r, i) => i === ri ? { ...r, [field]: val } : r))
     onEdit()
@@ -73,6 +80,7 @@ export default function ResultSection({ exp, resRows, setResRows, onEdit }: Prop
               <th className="rth" style={{ width: 54 }}>순도%</th>
               <th className="rth" style={{ width: 72 }}>분석방법</th>
               <th className="rth" style={{ width: 80 }}>첨부파일</th>
+              <th className="rth" style={{ width: 36 }}>분석</th>
             </tr>
           </thead>
           <tbody>
@@ -126,7 +134,48 @@ export default function ResultSection({ exp, resRows, setResRows, onEdit }: Prop
                         setResRows(prev => prev.map((r, i) => i === ri ? { ...r, atts: r.atts.filter((_, j) => j !== idx) } : r))
                       }} />
                     </td>
+                    <td className="rtd" style={{ textAlign: 'center' }}>
+                      <button
+                        onClick={() => toggleExpand(ri)}
+                        className="sbtn"
+                        title="분석 데이터 입력"
+                        style={{ fontSize: 11, background: expandedRows.has(ri) ? '#e8f0fa' : undefined }}
+                      >
+                        {expandedRows.has(ri) ? '▲' : '▼'}
+                      </button>
+                    </td>
                   </tr>
+                  {/* 분석 데이터 확장 패널 */}
+                  {expandedRows.has(ri) && (
+                    <tr>
+                      <td colSpan={10} style={{ background: '#f8fafd', padding: '10px 16px', borderBottom: '1px solid #e8edf5' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 24px', alignItems: 'flex-end' }}>
+                          {([
+                            { key: 'productSmiles', label: '생성물 SMILES', placeholder: 'CC(=O)Oc1ccccc1...', wide: true },
+                            { key: 'lcmsMz', label: 'LCMS m/z', placeholder: '324.1 [M+H]+' },
+                            { key: 'nmrSolvent', label: 'NMR 용매', placeholder: 'CDCl₃' },
+                            { key: 'rfValue', label: 'TLC Rf', placeholder: '0.45' },
+                            { key: 'chromatographySystem', label: '컬럼 조건', placeholder: 'Hex:EA 4:1' },
+                            { key: 'hplcRetention', label: 'HPLC Rt (min)', placeholder: '3.2' },
+                          ] as { key: AnalyticsKey; label: string; placeholder: string; wide?: boolean }[]).map(({ key, label, placeholder, wide }) => (
+                            <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                              <span style={{ fontSize: 9, color: 'var(--tx3)', fontWeight: 500 }}>{label}</span>
+                              <input
+                                className="rinp"
+                                style={{ width: wide ? 240 : 110, fontSize: 11 }}
+                                value={row[key] ?? ''}
+                                onChange={e => {
+                                  setResRows(prev => prev.map((r, i) => i === ri ? { ...r, [key]: e.target.value } : r))
+                                  onEdit()
+                                }}
+                                placeholder={placeholder}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
                   {/* side rows */}
                   {row.sides.map(s => {
                     const sYld = calcYield(s.inputMg, s.outputMg)
@@ -175,6 +224,7 @@ export default function ResultSection({ exp, resRows, setResRows, onEdit }: Prop
                             } : r))
                           }} />
                         </td>
+                        <td className="rtd" />
                       </tr>
                     )
                   })}

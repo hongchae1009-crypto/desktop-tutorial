@@ -121,3 +121,25 @@ export interface ColorPalette {
 export type ReagentModalTarget =
   | { kind: 'exp'; ri: number }
   | { kind: 'com'; ci: number };
+
+
+// ── 반응 조건 (AI 학습용) ─────────────────────────────────────
+export interface ReactionConditions {
+  temperature?: number;
+  reactionTime?: number;
+  solvent?: string;
+  solventVolume?: number;
+  atmosphere?: 'N2' | 'Ar' | 'Air' | 'H2' | '진공';
+  concentration?: number;
+  scale?: number;
+}
+
+// ── 분석 데이터 (AI 학습용) ───────────────────────────────────
+export interface AnalyticsData {
+  productSmiles?: string;
+  lcmsMz?: string;
+  nmrSolvent?: string;
+  hplcRetention?: string;
+  chromatographySystem?: string;
+  rfValue?: string;
+}

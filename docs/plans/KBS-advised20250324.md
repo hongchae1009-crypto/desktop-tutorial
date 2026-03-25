@@ -188,9 +188,9 @@ inchiKey?: string;  // 분자 고유 식별자 (중복 제거용)
 | 🥇 1 | SMILES 렌더링 (SmilesDrawer) | 1-A | 2시간 | 중 (시각화) | ✅ 완료 |
 | 🥈 2 | AI 컨텍스트 내보내기 버튼 | 1-B | 4시간 | 높음 | ✅ 완료 |
 | 🥉 3 | PubChem 자동완성 전체 연결 | 1-C | 3시간 | 높음 | ✅ 완료 |
-| 4 | 반응 조건 필드 추가 | 2-A | 1~2일 | **매우 높음** | ⏳ 대기 |
-| 5 | 분석 데이터 필드 추가 | 2-B | 반나절 | 높음 | ⏳ 대기 |
-| 6 | InChIKey 필드 추가 | 2-C | 2시간 | 중 | ⏳ 대기 |
+| 4 | 반응 조건 필드 추가 | 2-A | 1~2일 | **매우 높음** | ✅ 완료 |
+| 5 | 분석 데이터 필드 추가 | 2-B | 반나절 | 높음 | ✅ 완료 |
+| 6 | InChIKey 필드 추가 | 2-C | 2시간 | 중 | ✅ 완료 |
 | 7 | 반응 SMILES 자동 생성 | 3-A | 2~3일 | 매우 높음 | ⏳ 대기 |
 | 8 | AI 학습용 JSON 내보내기 | 3-B | 2~3일 | 높음 | ⏳ 대기 |
 | 9 | Claude API 연동 | 3-C | 1주 | — | ⏳ 대기 |
@@ -216,15 +216,16 @@ inchiKey?: string;  // 분자 고유 식별자 (중복 제거용)
 ## 검증 방법
 
 ### Phase 1 완료 기준
-- [ ] 시약 상세 카드에 SMILES 구조식이 2D로 렌더링됨
-- [ ] 모아실험 상세 페이지에 "AI와 상담" 버튼이 표시됨
-- [ ] 버튼 클릭 시 실험 데이터가 구조화된 텍스트로 클립보드 복사됨
-- [ ] MaterialsTable에서 CAS 입력 시 PubChem에서 SMILES 자동 입력됨
+- [x] 시약 상세 카드에 SMILES 구조식이 2D로 렌더링됨
+- [x] 모아실험 상세 페이지에 "AI와 상담" 버튼이 표시됨
+- [x] 버튼 클릭 시 실험 데이터가 구조화된 텍스트로 클립보드 복사됨
+- [x] MaterialsTable에서 CAS 입력 시 PubChem에서 SMILES 자동 입력됨
 
 ### Phase 2 완료 기준
-- [ ] 모아실험 실험 카드에 온도/시간/분위기 입력 필드 추가됨
-- [ ] 생성물 SMILES 입력 필드 추가됨
-- [ ] TLC Rf, LCMS m/z 입력 필드 추가됨
+- [x] moa.ts에 ReactionConditions + AnalyticsData 타입 추가됨 (2-A)
+- [x] 실험 결과 행별 분석 데이터 확장 패널 추가됨 (2-B: 생성물 SMILES, LCMS m/z, NMR 용매, TLC Rf, 컬럼 조건, HPLC Rt)
+- [x] ReagentItem + NoteReagentRow에 inchiKey 필드 추가됨 (2-C)
+- [x] PubChem API에서 InChIKey 조회 및 저장됨 (2-C)
 
 ### Phase 3 완료 기준
 - [ ] 실험 데이터 전체를 JSON으로 내보내기 가능

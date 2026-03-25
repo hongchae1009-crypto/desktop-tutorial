@@ -31,6 +31,8 @@ export interface NoteReagentRow {
   compoundName: string;
   alias?: string;
   casNumber?: string;
+  smiles?: string;
+  inchiKey?: string;          // 분자 고유 식별자
   mw?: number;                // g/mol
   density?: number;           // g/mL (0 = 해당없음/고체)
   weight?: number;            // weightUnit 단위

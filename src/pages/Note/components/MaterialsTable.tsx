@@ -325,6 +325,8 @@ function MatRow({ row, calc, wUnit: _wUnit, isOdd, onSetLimiting, onChange, onRe
         casNumber: cas,
         ...(result.compoundName ? { compoundName: result.compoundName } : {}),
         ...(result.mw != null ? { mw: result.mw } : {}),
+        ...(result.smiles ? { smiles: result.smiles } : {}),
+        ...(result.inchiKey ? { inchiKey: result.inchiKey } : {}),
       });
     }
   }

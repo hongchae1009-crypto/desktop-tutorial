@@ -9,6 +9,7 @@ export interface PubChemResult {
   smiles?: string;
   mw?: number;
   iupacName?: string;
+  inchiKey?: string;
 }
 
 /**
@@ -26,6 +27,7 @@ export async function fetchByCas(cas: string): Promise<PubChemResult | null> {
     let mw: number | undefined;
     let smiles: string | undefined;
     let iupacName: string | undefined;
+    let inchiKey: string | undefined;
 
     props.forEach((p) => {
       const { label, name } = p.urn;
@@ -39,9 +41,12 @@ export async function fetchByCas(cas: string): Promise<PubChemResult | null> {
       if (label === 'IUPAC Name' && name === 'Preferred') {
         iupacName = p.value.sval;
       }
+      if (label === 'InChIKey') {
+        inchiKey = p.value.sval;
+      }
     });
 
-    return { compoundName: iupacName, smiles, mw, iupacName };
+    return { compoundName: iupacName, smiles, mw, iupacName, inchiKey };
   } catch {
     return null;
   }
