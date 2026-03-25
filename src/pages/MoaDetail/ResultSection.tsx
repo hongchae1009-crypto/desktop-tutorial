@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import type { Exp, Com, BaseTarget } from '../../types/moa'
 import type { ResRow, SideRow } from './index'
+import { buildReactionSmiles } from '../../utils/aiExport'
 
 type AnalyticsKey = 'productSmiles' | 'lcmsMz' | 'nmrSolvent' | 'hplcRetention' | 'chromatographySystem' | 'rfValue'
 
@@ -173,6 +174,24 @@ export default function ResultSection({ exp, resRows, setResRows, onEdit }: Prop
                             </div>
                           ))}
                         </div>
+                        {/* 반응 SMILES 자동 생성 (3-A) */}
+                        {(() => {
+                          const rxnSmiles = buildReactionSmiles(
+                            [exp[ri]?.smiles],
+                            exp.filter((_, i) => i !== ri).map(e => e.smiles),
+                            row.productSmiles,
+                          )
+                          if (!rxnSmiles) return null
+                          return (
+                            <div style={{ marginTop: 8, borderTop: '1px dashed #e2e8f0', paddingTop: 8 }}>
+                              <span style={{ fontSize: 9, color: 'var(--tx3)', fontWeight: 500 }}>반응 SMILES </span>
+                              <span style={{ fontSize: 9, background: '#e8f0fa', color: '#1a6bb5', padding: '1px 6px', borderRadius: 4, marginLeft: 4 }}>자동</span>
+                              <div style={{ fontFamily: 'var(--fm)', fontSize: 10, color: '#374151', background: '#f1f5fd', padding: '4px 8px', borderRadius: 4, marginTop: 4, wordBreak: 'break-all', userSelect: 'all' }}>
+                                {rxnSmiles}
+                              </div>
+                            </div>
+                          )
+                        })()}
                       </td>
                     </tr>
                   )}

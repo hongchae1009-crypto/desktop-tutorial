@@ -82,6 +82,22 @@ export function buildAiPrompt(input: AiExportInput): string {
 }
 
 /**
+ * 반응 SMILES 자동 생성 (3-A)
+ * 포맷: reactant1.reactant2>reagent1.reagent2>product
+ */
+export function buildReactionSmiles(
+  reactantSmiles: (string | undefined)[],
+  reagentSmiles: (string | undefined)[],
+  productSmiles: string | undefined,
+): string | null {
+  const reactants = reactantSmiles.filter(Boolean).join('.');
+  const reagents = reagentSmiles.filter(Boolean).join('.');
+  const product = productSmiles?.trim() ?? '';
+  if (!reactants && !product) return null;
+  return `${reactants}>${reagents}>${product}`;
+}
+
+/**
  * 텍스트를 클립보드에 복사하고 성공 여부를 반환
  */
 export async function copyToClipboard(text: string): Promise<boolean> {

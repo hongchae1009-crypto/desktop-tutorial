@@ -14,6 +14,7 @@ export interface Exp {
   eq: number;           // eq 배율 (비기준 시약일 때)
   baseMmol: string;     // 기준물질일 때 직접 입력 mmol
   m: string;            // measures(mg) 실제 측정값
+  smiles?: string;      // SMILES (반응 SMILES 생성용)
 }
 
 // ── 공통시약 열 ───────────────────────────────────────────
@@ -24,6 +25,7 @@ export interface Com {
   eq: number;           // eq 배율
   baseMmol: string;     // 기준물질일 때 직접 입력 mmol
   cells: ComCell[];     // 인덱스 = EXP 인덱스
+  smiles?: string;      // SMILES (반응 SMILES 생성용)
 }
 
 export interface ComCell {

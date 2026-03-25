@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react'
 import type { MoaCard, Exp, Com, BaseTarget } from '../../types/moa'
 import { getBaseMmol, autoMmol, calcWeight, getDeviation, eCs, cCs, cp, SAMPLE_REAGENTS } from '../../utils/moa'
 import { copyToClipboard } from '../../utils/aiExport'
+import { buildExportJson, downloadJson } from '../../utils/dataExport'
 import QuantTable from './QuantTable'
 import ResultSection from './ResultSection'
 import DashboardCard from './DashboardCard'
@@ -15,14 +16,14 @@ interface Props {
 
 // initial state
 const initExp = (): Exp[] => [
-  { id: 'HCE-1', name: '1-Bromo-2-fluorobenzene',          pin: 'K01251', mw: 175,    eq: 1, baseMmol: '', m: '' },
-  { id: 'HCE-2', name: '1-Bromo-2,4-dimethoxybenzene',     pin: 'K01275', mw: 217.06, eq: 1, baseMmol: '', m: '' },
-  { id: 'HCE-3', name: '1-Bromo-2-(trifluoromethoxy)benzene', pin: 'K01230', mw: 241.01, eq: 1, baseMmol: '', m: '' },
+  { id: 'HCE-1', name: '1-Bromo-2-fluorobenzene',             pin: 'K01251', mw: 175,    eq: 1, baseMmol: '', m: '', smiles: 'Fc1ccccc1Br' },
+  { id: 'HCE-2', name: '1-Bromo-2,4-dimethoxybenzene',        pin: 'K01275', mw: 217.06, eq: 1, baseMmol: '', m: '', smiles: 'COc1ccc(Br)c(OC)c1' },
+  { id: 'HCE-3', name: '1-Bromo-2-(trifluoromethoxy)benzene', pin: 'K01230', mw: 241.01, eq: 1, baseMmol: '', m: '', smiles: 'FC(F)(F)Oc1ccccc1Br' },
 ]
 const initCom = (): Com[] => [
-  { name: 'Piperazine',          pin: 'K00504', mw: 86.14,  eq: 1, baseMmol: '', cells: [{m:''},{m:''},{m:''}] },
+  { name: 'Piperazine',          pin: 'K00504', mw: 86.14,  eq: 1,    baseMmol: '', cells: [{m:''},{m:''},{m:''}], smiles: 'C1CNCCN1' },
   { name: 'Ruphos',              pin: 'K00595', mw: 466.6,  eq: 0.05, baseMmol: '', cells: [{m:''},{m:''},{m:''}] },
-  { name: 'Sodium tert-butoxide',pin: 'K00622', mw: 96.1,   eq: 2,    baseMmol: '', cells: [{m:''},{m:''},{m:''}] },
+  { name: 'Sodium tert-butoxide',pin: 'K00622', mw: 96.1,   eq: 2,    baseMmol: '', cells: [{m:''},{m:''},{m:''}], smiles: '[Na+].[O-]C(C)(C)C' },
 ]
 
 export type ResRow = {
@@ -101,8 +102,63 @@ export default function MoaDetailPage({ card, onBack }: Props) {
 
   const confirmClose = () => setCloseConfirm(true)
 
-  // AI 내보내기
+  // AI 내보내기 (클립보드)
   const [aiCopied, setAiCopied] = useState(false)
+
+  // Claude AI 분석 (3-C)
+  const [aiPanelOpen, setAiPanelOpen] = useState(false)
+  const [aiQuestion, setAiQuestion] = useState('')
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiResponse, setAiResponse] = useState('')
+  const [aiError, setAiError] = useState('')
+
+  const handleClaudeAnalysis = async () => {
+    const line = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+    const expLines = exp.map((e, i) => {
+      const res = resRows[i]
+      const yieldStr = res?.outputMg ? `수득량 ${res.outputMg}mg` : '—'
+      const smilesStr = e.smiles ? ` SMILES: ${e.smiles}` : ''
+      return `  [${e.id}] ${e.name} (MW ${e.mw ?? '?'}, ${e.eq} eq${smilesStr})  →  ${yieldStr}`
+    }).join('\n')
+    const comLines = com.length === 0 ? '  (없음)' :
+      com.map(c => `  ${c.name} (${c.eq} eq, MW ${c.mw ?? '?'}${c.smiles ? `, SMILES: ${c.smiles}` : ''})`).join('\n')
+    const condStr = [
+      cond.temp ? `온도 ${cond.temp}°C` : '',
+      cond.time ? `시간 ${cond.time}h` : '',
+      cond.atm ? `분위기 ${cond.atm}` : '',
+      (cond.solvent || cond.solventCustom) ? `용매 ${cond.solvent || cond.solventCustom}` : '',
+    ].filter(Boolean).join(' · ') || '—'
+    const prompt = [
+      line, `📋 실험 요약`,
+      `   프로젝트: ${metaProject}   반응명: ${metaTitle}`,
+      line,
+      `[변수 시약]`, expLines || '  (없음)',
+      ``, `[공통 시약]`, comLines,
+      ``, `[반응 조건]`, `  ${condStr}`,
+      line,
+      `[질문]`, `  ${aiQuestion || '이 실험의 수율을 개선할 방법을 제안해 주세요.'}`,
+    ].join('\n')
+
+    setAiLoading(true)
+    setAiError('')
+    setAiResponse('')
+    try {
+      const res = await fetch('/api/claude', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      })
+      const data = await res.json() as { content?: string; error?: string }
+      if (!res.ok || data.error) {
+        setAiError(data.error ?? `오류 (${res.status})`)
+      } else {
+        setAiResponse(data.content ?? '')
+      }
+    } catch (e) {
+      setAiError('네트워크 오류가 발생했습니다.')
+    }
+    setAiLoading(false)
+  }
   const handleAiExport = async () => {
     const line = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
     const expLines = exp.map((e, i) => {
@@ -129,6 +185,22 @@ export default function MoaDetailPage({ card, onBack }: Props) {
     ].join('\n')
     const ok = await copyToClipboard(prompt)
     if (ok) { setAiCopied(true); setTimeout(() => setAiCopied(false), 2000) }
+  }
+
+  // JSON 내보내기 (3-B)
+  const handleJsonExport = () => {
+    const data = buildExportJson({
+      cardId: card.id,
+      title: metaTitle,
+      project: metaProject,
+      author: '제은',
+      cond,
+      exp,
+      com,
+      resRows,
+    })
+    const filename = `${card.id}_ai_export_${new Date().toISOString().slice(0,10)}.json`
+    downloadJson(data, filename)
   }
 
   // 서명 해제 on edit (signed → unsigned)
@@ -168,6 +240,10 @@ export default function MoaDetailPage({ card, onBack }: Props) {
           공유
         </button>
         <button className="btn">연구노트 가져오기</button>
+        <button className="btn" onClick={handleJsonExport} title="AI 학습용 JSON 파일 다운로드">
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M8 2v8M5 7l3 3 3-3M3 13h10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          JSON
+        </button>
         <button className="btn btn-p" onClick={updateLastMod}>저장</button>
         <button className="btn btn-grn" onClick={confirmClose}>종료</button>
         <button className="btn btn-d">삭제</button>
@@ -199,6 +275,14 @@ export default function MoaDetailPage({ card, onBack }: Props) {
               >
                 {aiCopied ? '✓ 복사됨' : '🤖 AI와 상담'}
               </button>
+              <button
+                onClick={() => setAiPanelOpen(p => !p)}
+                className="btn"
+                style={{ fontSize: 10, padding: '3px 10px', background: aiPanelOpen ? '#f5f3ff' : undefined, color: aiPanelOpen ? '#5B21B6' : undefined, borderColor: aiPanelOpen ? '#C4B5FD' : undefined }}
+                title="Claude AI로 실험 분석"
+              >
+                🧠 Claude 분석
+              </button>
               <button className="btn" style={{ fontSize: 10, padding: '3px 8px' }}>편집</button>
             </div>
           </div>
@@ -215,6 +299,52 @@ export default function MoaDetailPage({ card, onBack }: Props) {
             <div className="cprod"><div className="cprod-l">P</div></div>
           </div>
         </div>
+
+        {/* Claude AI 분석 패널 (3-C) */}
+        {aiPanelOpen && (
+          <div className="card" style={{ borderColor: '#C4B5FD' }}>
+            <div className="ch" style={{ background: '#faf5ff' }}>
+              <span className="ct" style={{ color: '#5B21B6' }}>🧠 Claude AI 반응 분석</span>
+              <span style={{ fontSize: 9, color: '#7C3AED' }}>실험 데이터를 Claude에게 전송하여 분석 받습니다</span>
+            </div>
+            <div style={{ padding: '12px 16px' }}>
+              <div style={{ marginBottom: 8 }}>
+                <span style={{ fontSize: 9, color: 'var(--tx3)', fontWeight: 500 }}>질문 (선택)</span>
+                <input
+                  className="cond-inp"
+                  style={{ width: '100%', marginTop: 4, fontSize: 11 }}
+                  placeholder="예: 수율을 90% 이상으로 올리려면? / 부반응 원인은?"
+                  value={aiQuestion}
+                  onChange={e => setAiQuestion(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && !aiLoading && handleClaudeAnalysis()}
+                />
+              </div>
+              <button
+                className="btn btn-p"
+                style={{ fontSize: 11, padding: '4px 16px', opacity: aiLoading ? 0.6 : 1 }}
+                onClick={handleClaudeAnalysis}
+                disabled={aiLoading}
+              >
+                {aiLoading ? '⏳ 분석 중…' : '🚀 분석 시작'}
+              </button>
+              {aiError && (
+                <div style={{ marginTop: 8, padding: '8px 12px', background: '#fff0f0', borderRadius: 6, fontSize: 11, color: '#c0392b' }}>
+                  ⚠️ {aiError}
+                  {aiError.includes('not configured') && (
+                    <div style={{ marginTop: 4, fontSize: 10, color: '#999' }}>
+                      Vercel 대시보드 → Settings → Environment Variables에 <code>ANTHROPIC_API_KEY</code>를 추가하세요.
+                    </div>
+                  )}
+                </div>
+              )}
+              {aiResponse && (
+                <div style={{ marginTop: 10, padding: '10px 14px', background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 6, fontSize: 12, lineHeight: 1.7, whiteSpace: 'pre-wrap', color: '#1f1f2e' }}>
+                  {aiResponse}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* 시작물질/반응물 */}
         <QuantTable
