@@ -8,6 +8,7 @@ import RecordTabs from './components/RecordTabs';
 import YieldChart from './components/YieldChart';
 import ReagentSearchModal from './components/modals/ReagentSearchModal';
 import PreviewModal from './components/modals/PreviewModal';
+import { buildAiPrompt, copyToClipboard } from '../../utils/aiExport';
 
 interface MoaDetailViewProps {
   card: MoaCard;
@@ -28,6 +29,17 @@ const MoaDetailView: React.FC<MoaDetailViewProps> = ({ card, onBack }) => {
 
   // 미리보기 모달
   const [preview, setPreview] = useState<{ ri: number; fi: number } | null>(null);
+
+  // AI 내보내기
+  const [aiCopied, setAiCopied] = useState(false);
+  const handleAiExport = async () => {
+    const prompt = buildAiPrompt({ card, exp: qt.exp, com: qt.com, baseTarget: qt.baseTarget, resData: rt.resData });
+    const ok = await copyToClipboard(prompt);
+    if (ok) {
+      setAiCopied(true);
+      setTimeout(() => setAiCopied(false), 2000);
+    }
+  };
 
   // Undo 토스트
   const [toastVisible, setToastVisible] = useState(false);
@@ -91,9 +103,26 @@ const MoaDetailView: React.FC<MoaDetailViewProps> = ({ card, onBack }) => {
         <div style={{ background: '#fff', border: '0.5px solid #e2e4e9', borderRadius: 8, overflow: 'hidden', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 12px', borderBottom: '0.5px solid #e2e4e9' }}>
             <span style={{ fontSize: 9, fontWeight: 500, color: '#4a5060', textTransform: 'uppercase', letterSpacing: 0.5 }}>Scheme</span>
-            <button style={{ fontSize: 10, padding: '3px 8px', borderRadius: 5, border: '0.5px solid #e2e4e9', background: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}>
-              편집
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <button
+                onClick={handleAiExport}
+                title="실험 데이터를 AI 상담용 텍스트로 클립보드에 복사"
+                style={{
+                  fontSize: 10, padding: '3px 10px', borderRadius: 5,
+                  border: `0.5px solid ${aiCopied ? '#1D9E75' : '#b5d4f4'}`,
+                  background: aiCopied ? '#f0fdf8' : '#e8f0fa',
+                  color: aiCopied ? '#1D9E75' : '#1a6bb5',
+                  cursor: 'pointer', fontFamily: 'inherit',
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                  transition: 'all .15s',
+                }}
+              >
+                {aiCopied ? '✓ 복사됨' : '🤖 AI와 상담'}
+              </button>
+              <button style={{ fontSize: 10, padding: '3px 8px', borderRadius: 5, border: '0.5px solid #e2e4e9', background: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}>
+                편집
+              </button>
+            </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 18, padding: '10px 32px' }}>
             {['E', 'A', 'B', 'C'].map((label, i) => (

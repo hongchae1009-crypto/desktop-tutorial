@@ -1,4 +1,6 @@
-/** 구조식 영역 — SMILES 미지원 시 회색 박스 폴백 (NFR-03) */
+import { useEffect, useRef } from 'react';
+import SmilesDrawer from 'smiles-drawer';
+
 interface StructureBoxProps {
   smiles?: string;
   width?: number | string;
@@ -21,19 +23,56 @@ const WIDTHS: Record<NonNullable<StructureBoxProps['variant']>, string> = {
   basket: '100%',
 };
 
+const DRAW_SIZES: Record<NonNullable<StructureBoxProps['variant']>, { w: number; h: number }> = {
+  card:   { w: 110, h: 120 },
+  table:  { w: 56,  h: 38  },
+  modal:  { w: 280, h: 160 },
+  basket: { w: 180, h: 58  },
+};
+
 export default function StructureBox({
   smiles,
   width,
   height,
   variant = 'card',
 }: StructureBoxProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const w = width  ?? WIDTHS[variant];
   const h = height ?? HEIGHTS[variant];
+  const drawSize = DRAW_SIZES[variant];
 
-  const style: React.CSSProperties = {
+  useEffect(() => {
+    if (!smiles || !canvasRef.current) return;
+
+    const drawer = new SmilesDrawer.Drawer({
+      width: drawSize.w,
+      height: drawSize.h,
+      bondThickness: variant === 'table' ? 0.6 : 0.8,
+      shortBondWidth: variant === 'table' ? 0.5 : 0.8,
+      bondSpacing: variant === 'table' ? 4 : 5,
+      atomVisualization: 'default',
+      isomeric: true,
+      fontSizeLarge: variant === 'table' ? 4 : 6,
+      fontSizeSmall: variant === 'table' ? 3 : 4,
+    });
+
+    SmilesDrawer.parse(
+      smiles,
+      (tree: unknown) => {
+        if (canvasRef.current) {
+          drawer.draw(tree, canvasRef.current, 'light', false);
+        }
+      },
+      () => {
+        // 파싱 오류 시 폴백 텍스트 유지
+      },
+    );
+  }, [smiles, variant, drawSize.w, drawSize.h]);
+
+  const containerStyle: React.CSSProperties = {
     width: w,
     height: h,
-    background: 'var(--surface2)',
+    background: smiles ? '#fff' : 'var(--surface2)',
     border: '1px solid var(--border)',
     borderRadius: variant === 'table' ? '4px' : undefined,
     display: 'flex',
@@ -42,22 +81,24 @@ export default function StructureBox({
     flexShrink: 0,
     flexDirection: 'column',
     gap: '4px',
+    overflow: 'hidden',
   };
 
   if (smiles) {
-    // TODO: RDKit.js / Ketcher 렌더링 연동 (Open Issue #1)
-    // 현재는 SMILES 텍스트 존재 시 폴백과 동일하게 표시
     return (
-      <div style={style} title={smiles}>
-        <span style={{ fontSize: variant === 'table' ? '9px' : '10px', color: 'var(--hint)' }}>
-          구조식
-        </span>
+      <div style={containerStyle} title={smiles}>
+        <canvas
+          ref={canvasRef}
+          width={drawSize.w}
+          height={drawSize.h}
+          style={{ maxWidth: '100%', maxHeight: '100%' }}
+        />
       </div>
     );
   }
 
   return (
-    <div style={style}>
+    <div style={containerStyle}>
       <span style={{ fontSize: variant === 'table' ? '9px' : '10px', color: 'var(--hint)' }}>
         구조식
       </span>

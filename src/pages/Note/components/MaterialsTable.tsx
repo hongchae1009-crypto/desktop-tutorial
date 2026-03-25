@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import type { NoteReagentRow, NoteReagentRole, WeightUnit, VolumeUnit, MolUnit } from '@/types/note';
 import { ROLE_LABEL, ROLE_COLOR } from '@/types/note';
 import ReagentPickerModal from './ReagentPickerModal';
+import { fetchByCas } from '@/utils/pubchem';
 
 // ─── 단위 변환 헬퍼 ───────────────────────────────────────────────────────────
 
@@ -309,7 +310,24 @@ interface MatRowProps {
   onRemove: () => void;
 }
 
-function MatRow({ row, calc, wUnit, isOdd, onSetLimiting, onChange, onRemove }: MatRowProps) {
+function MatRow({ row, calc, wUnit: _wUnit, isOdd, onSetLimiting, onChange, onRemove }: MatRowProps) {
+  const [casInput, setCasInput] = useState(row.casNumber ?? '');
+  const [casLoading, setCasLoading] = useState(false);
+
+  async function handleCasLookup() {
+    const cas = casInput.trim();
+    if (!cas) return;
+    setCasLoading(true);
+    const result = await fetchByCas(cas);
+    setCasLoading(false);
+    if (result) {
+      onChange({
+        casNumber: cas,
+        ...(result.compoundName ? { compoundName: result.compoundName } : {}),
+        ...(result.mw != null ? { mw: result.mw } : {}),
+      });
+    }
+  }
   const bg = row.isLimiting ? '#EBF9F1' : isOdd ? 'var(--bg2)' : 'transparent';
 
   const td: React.CSSProperties = {
@@ -393,8 +411,31 @@ function MatRow({ row, calc, wUnit, isOdd, onSetLimiting, onChange, onRemove }: 
               </span>
             )}
           </div>
+          {/* CAS 조회 행 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginTop: 2 }}>
+            <input
+              value={casInput}
+              onChange={(e) => setCasInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleCasLookup()}
+              placeholder="CAS 번호"
+              style={{ ...inp, textAlign: 'left', flex: 1, minWidth: 0, fontSize: 10, color: 'var(--tx3)', padding: '2px 5px' }}
+              onFocus={onF} onBlur={onB}
+            />
+            <button
+              onClick={handleCasLookup}
+              disabled={casLoading}
+              title="PubChem에서 화합물 정보 자동완성"
+              style={{
+                flexShrink: 0, fontSize: 9, padding: '2px 5px', borderRadius: 4, cursor: 'pointer',
+                border: '1px solid var(--blue-bd, #b5d4f4)', background: '#e8f0fa', color: '#1a6bb5',
+                fontFamily: 'inherit', whiteSpace: 'nowrap',
+              }}
+            >
+              {casLoading ? '…' : '조회'}
+            </button>
+          </div>
           {row.cabinetName && (
-            <div style={{ fontSize: 9, color: 'var(--tx3)', paddingLeft: 4 }}>
+            <div style={{ fontSize: 9, color: 'var(--tx3)', paddingLeft: 4, marginTop: 1 }}>
               📦 {row.cabinetName}
             </div>
           )}

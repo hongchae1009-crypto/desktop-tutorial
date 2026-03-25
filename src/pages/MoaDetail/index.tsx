@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react'
 import type { MoaCard, Exp, Com, BaseTarget } from '../../types/moa'
 import { getBaseMmol, autoMmol, calcWeight, getDeviation, eCs, cCs, cp, SAMPLE_REAGENTS } from '../../utils/moa'
+import { copyToClipboard } from '../../utils/aiExport'
 import QuantTable from './QuantTable'
 import ResultSection from './ResultSection'
 import DashboardCard from './DashboardCard'
@@ -93,6 +94,36 @@ export default function MoaDetailPage({ card, onBack }: Props) {
 
   const confirmClose = () => setCloseConfirm(true)
 
+  // AI 내보내기
+  const [aiCopied, setAiCopied] = useState(false)
+  const handleAiExport = async () => {
+    const line = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+    const expLines = exp.map((e, i) => {
+      const res = resRows[i]
+      const yieldStr = res?.outputMg ? `수득량 ${res.outputMg}mg` : (res?.purPct ? `순도 ${res.purPct}%` : '—')
+      return `  [${e.id}] ${e.name} (MW ${e.mw ?? '?'}, ${e.eq} eq)  →  ${yieldStr}`
+    }).join('\n')
+    const comLines = com.length === 0 ? '  (없음)' :
+      com.map(c => `  ${c.name} (${c.eq} eq, MW ${c.mw ?? '?'})`).join('\n')
+    const condStr = [
+      cond.temp ? `온도 ${cond.temp}°C` : '',
+      cond.time ? `시간 ${cond.time}h` : '',
+      cond.atm ? `분위기 ${cond.atm}` : '',
+      (cond.solvent || cond.solventCustom) ? `용매 ${cond.solvent || cond.solventCustom}` : '',
+    ].filter(Boolean).join(' · ') || '—'
+    const prompt = [
+      line, `📋 AI 상담용 실험 요약`,
+      `   프로젝트: ${metaProject}   반응명: ${metaTitle}`,
+      line,
+      `[변수 시약]`, expLines || '  (없음)',
+      ``, `[공통 시약]`, comLines,
+      ``, `[반응 조건]`, `  ${condStr}`,
+      line, `❓ 질문: `,
+    ].join('\n')
+    const ok = await copyToClipboard(prompt)
+    if (ok) { setAiCopied(true); setTimeout(() => setAiCopied(false), 2000) }
+  }
+
   // 서명 해제 on edit (signed → unsigned)
   const markEdited = () => {
     if (sig.status === 'signed') {
@@ -150,7 +181,20 @@ export default function MoaDetailPage({ card, onBack }: Props) {
 
         {/* Scheme */}
         <div className="card">
-          <div className="ch"><span className="ct">Scheme</span><button className="btn" style={{ fontSize: 10, padding: '3px 8px' }}>편집</button></div>
+          <div className="ch">
+            <span className="ct">Scheme</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <button
+                onClick={handleAiExport}
+                className="btn"
+                style={{ fontSize: 10, padding: '3px 10px', background: aiCopied ? '#f0fdf8' : '#e8f0fa', color: aiCopied ? '#1D9E75' : '#1a6bb5', borderColor: aiCopied ? '#9FE1CB' : '#b5d4f4', transition: 'all .15s' }}
+                title="실험 데이터를 AI 상담용 텍스트로 클립보드에 복사"
+              >
+                {aiCopied ? '✓ 복사됨' : '🤖 AI와 상담'}
+              </button>
+              <button className="btn" style={{ fontSize: 10, padding: '3px 8px' }}>편집</button>
+            </div>
+          </div>
           <div className="sb">
             <div className="cbox"><div className="vbadge">변수</div><div className="cl clE">E</div><div className="cm">실험별 상이</div></div>
             <div className="cplus">+</div>
