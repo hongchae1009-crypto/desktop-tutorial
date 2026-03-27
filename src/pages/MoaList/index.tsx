@@ -3,6 +3,7 @@ import type { MoaCard, MoaStatus } from '../../types/moa'
 import { SAMPLE_FOLDERS } from '../../data/sample'
 import { BARS } from '../../utils/moa'
 import { generateCardId, createCard, deleteCard, fetchCards } from '../../services/moaService'
+import { SUPABASE_READY } from '../../utils/supabase'
 
 interface Props {
   cards: MoaCard[]
@@ -52,7 +53,8 @@ export default function MoaListPage({ cards, loading, onOpen, onCardsChange }: P
         createdAt: new Date().toISOString().slice(0, 10),
       }
       await createCard(newCard)
-      const updated = await fetchCards()
+      // Supabase 연결 시 DB에서 최신 목록 조회, 미연결 시 로컬 목록에 추가
+      const updated = SUPABASE_READY ? await fetchCards() : [...cards, newCard]
       onCardsChange(updated)
       setNewModal(false)
       setNewTitle('')
@@ -72,7 +74,7 @@ export default function MoaListPage({ cards, loading, onOpen, onCardsChange }: P
     setDeleting(true)
     try {
       await deleteCard(deleteTarget.id)
-      const updated = await fetchCards()
+      const updated = SUPABASE_READY ? await fetchCards() : cards.filter(c => c.id !== deleteTarget.id)
       onCardsChange(updated)
       setDeleteTarget(null)
     } catch (e) {

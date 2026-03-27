@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { MoaCard } from './types/moa'
 import { fetchCards } from './services/moaService'
+import { SUPABASE_READY } from './utils/supabase'
 import MoaListPage from './pages/MoaList'
 import MoaDetailPage from './pages/MoaDetail'
 
@@ -56,7 +57,7 @@ export default function App() {
   const goList = () => {
     setView('list')
     setActiveCard(null)
-    loadCards() // 저장 후 카드 요약(yield 등) 갱신
+    if (SUPABASE_READY) loadCards() // 저장 후 카드 요약(yield 등) 갱신
   }
 
   const sections = SNB_SECTIONS('moa', navigate)
