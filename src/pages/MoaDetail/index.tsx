@@ -1,8 +1,9 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import type { MoaCard, Exp, Com, BaseTarget } from '../../types/moa'
 import { getBaseMmol, autoMmol, calcWeight, getDeviation, eCs, cCs, cp, SAMPLE_REAGENTS } from '../../utils/moa'
 import { copyToClipboard } from '../../utils/aiExport'
 import { buildExportJson, downloadJson } from '../../utils/dataExport'
+import { fetchExperiment, saveExperiment } from '../../services/moaService'
 import QuantTable from './QuantTable'
 import ResultSection from './ResultSection'
 import DashboardCard from './DashboardCard'
@@ -62,6 +63,10 @@ export default function MoaDetailPage({ card, onBack }: Props) {
   const [metaProject, setMetaProject] = useState(card.project)
   const [closeConfirm, setCloseConfirm] = useState(false)
 
+  // Supabase 로딩/저장 상태
+  const [dataLoaded, setDataLoaded] = useState(false)
+  const [saving, setSaving] = useState(false)
+
   // 실험조건
   const [cond, setCond] = useState({ temp: '', time: '', atm: '', solvent: '', solventCustom: '', solventVol: '' })
 
@@ -87,6 +92,33 @@ export default function MoaDetailPage({ card, onBack }: Props) {
     { at: new Date().toISOString().replace('T', ' ').slice(0,19), actor: '제은', type: 'create', desc: '실험 생성' }
   ])
 
+  // Supabase에서 실험 데이터 로딩
+  useEffect(() => {
+    setDataLoaded(false)
+    fetchExperiment(card.id)
+      .then(row => {
+        if (row) {
+          setExp(row.exp)
+          setCom(row.com)
+          setBaseTarget(row.base_target)
+          setCond(row.cond)
+          setRecTexts(row.rec_texts)
+          setResRows(row.res_rows)
+          setDashNote(row.dash_note)
+          setSig(row.sig)
+          setHistory(row.history)
+          setMetaTitle(row.meta_title)
+          setMetaProject(row.meta_project)
+          if (row.last_saved_at) setLastMod(row.last_saved_at.slice(0, 16).replace('T', ' '))
+        }
+        setDataLoaded(true)
+      })
+      .catch(err => {
+        console.error('[MoaDetail] 실험 로딩 실패:', err)
+        setDataLoaded(true) // 기본값으로 표시
+      })
+  }, [card.id])
+
   const addHistory = useCallback((type: HistEntry['type'], desc: string) => {
     setHistory(prev => [{
       at: new Date().toISOString().replace('T', ' ').slice(0,19),
@@ -94,10 +126,31 @@ export default function MoaDetailPage({ card, onBack }: Props) {
     }, ...prev])
   }, [])
 
-  const updateLastMod = () => {
+  const updateLastMod = async () => {
     const now = new Date().toISOString().replace('T', ' ').slice(0,16)
+    const newEntry: HistEntry = { at: now, actor: '제은', type: 'edit', desc: '저장됨' }
+    const nextHistory = [newEntry, ...history]
+    setHistory(nextHistory)
     setLastMod(now)
-    addHistory('edit', '저장됨')
+    setSaving(true)
+    try {
+      await saveExperiment({
+        id: card.id,
+        exp, com,
+        base_target: baseTarget,
+        cond, rec_texts: recTexts,
+        res_rows: resRows,
+        dash_note: dashNote,
+        sig,
+        history: nextHistory,
+        meta_title: metaTitle,
+        meta_project: metaProject,
+      })
+    } catch (e) {
+      console.error('[MoaDetail] 저장 실패:', e)
+    } finally {
+      setSaving(false)
+    }
   }
 
   const confirmClose = () => setCloseConfirm(true)
@@ -244,7 +297,9 @@ export default function MoaDetailPage({ card, onBack }: Props) {
           <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M8 2v8M5 7l3 3 3-3M3 13h10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
           JSON
         </button>
-        <button className="btn btn-p" onClick={updateLastMod}>저장</button>
+        <button className="btn btn-p" onClick={updateLastMod} disabled={saving} style={{ opacity: saving ? 0.6 : 1 }}>
+          {saving ? '저장 중…' : '저장'}
+        </button>
         <button className="btn btn-grn" onClick={confirmClose}>종료</button>
         <button className="btn btn-d">삭제</button>
       </div>
@@ -259,8 +314,15 @@ export default function MoaDetailPage({ card, onBack }: Props) {
         <div className="mi"><span className="ml">마지막수정일</span><span className="mv">{lastMod ?? '—'}</span></div>
       </div>
 
+      {/* 데이터 로딩 중 표시 */}
+      {!dataLoaded && (
+        <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--tx3)', fontSize: 12 }}>
+          실험 데이터 로딩 중…
+        </div>
+      )}
+
       {/* Detail content */}
-      <div className="detail-main">
+      {dataLoaded && <div className="detail-main">
 
         {/* Scheme */}
         <div className="card">
@@ -443,7 +505,7 @@ export default function MoaDetailPage({ card, onBack }: Props) {
           <HistoryCard history={history} style={{ flex: 1 }} />
         </div>
 
-      </div>
+      </div>}
 
       {/* 종료 확인 모달 */}
       {closeConfirm && (

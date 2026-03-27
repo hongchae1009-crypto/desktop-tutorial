@@ -1,7 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { MoaCard } from './types/moa'
-import { SAMPLE_CARDS } from './data/sample'
+import { fetchCards } from './services/moaService'
 import MoaListPage from './pages/MoaList'
 import MoaDetailPage from './pages/MoaDetail'
 
@@ -33,16 +33,30 @@ const SNB_SECTIONS = (activePage: string, onNavigate: (path: string) => void) =>
 export default function App() {
   const [view, setView] = useState<View>('list')
   const [activeCard, setActiveCard] = useState<MoaCard | null>(null)
+  const [cards, setCards] = useState<MoaCard[]>([])
+  const [cardsLoading, setCardsLoading] = useState(true)
   const navigate = useNavigate()
 
-  const goDetail = (card?: MoaCard) => {
-    setActiveCard(card ?? SAMPLE_CARDS[0])
+  // 카드 목록 로딩 (Supabase)
+  const loadCards = () => {
+    setCardsLoading(true)
+    fetchCards()
+      .then(setCards)
+      .catch(err => { console.error('[App] fetchCards 실패:', err); setCards([]) })
+      .finally(() => setCardsLoading(false))
+  }
+
+  useEffect(() => { loadCards() }, [])
+
+  const goDetail = (card: MoaCard) => {
+    setActiveCard(card)
     setView('detail')
   }
 
   const goList = () => {
     setView('list')
     setActiveCard(null)
+    loadCards() // 저장 후 카드 요약(yield 등) 갱신
   }
 
   const sections = SNB_SECTIONS('moa', navigate)
@@ -122,7 +136,12 @@ export default function App() {
         {/* RIGHT PANEL */}
         <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           {view === 'list' ? (
-            <MoaListPage cards={SAMPLE_CARDS} onOpen={goDetail} />
+            <MoaListPage
+              cards={cards}
+              loading={cardsLoading}
+              onOpen={goDetail}
+              onCardsChange={setCards}
+            />
           ) : (
             <MoaDetailPage card={activeCard!} onBack={goList} />
           )}
