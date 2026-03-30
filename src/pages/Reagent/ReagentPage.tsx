@@ -36,6 +36,8 @@ import RegisterModal        from './components/RegisterModal/RegisterModal';
 import AddCabinetModal      from './components/AddCabinetModal/AddCabinetModal';
 import SendToMoaModal       from './components/SendToMoaModal/SendToMoaModal';
 import PrintModal           from './components/PrintModal/PrintModal';
+import LabelModal          from './components/LabelModal/LabelModal';
+import StructureSearchModal from './components/StructureSearchModal/StructureSearchModal';
 
 const PER_PAGE_CARD  = 9;
 const PER_PAGE_TABLE = 20;
@@ -94,6 +96,9 @@ function ReagentPageInner() {
   const [showAddCabinetModal, setShowAddCabinetModal] = useState(false);
   const [sendToMoaOpen, setSendToMoaOpen] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
+  const [showLabelModal, setShowLabelModal] = useState(false);
+  const [showStructureSearchModal, setShowStructureSearchModal] = useState(false);
+  const [structureQuery, setStructureQuery] = useState('');
 
   const modalReagent = reagents.find((r) => r.id === modalId) ?? null;
 
@@ -113,15 +118,24 @@ function ReagentPageInner() {
       return r.cabinetId === activeCabId;
     });
 
-    if (!kw) return cabinetFiltered;
-    return cabinetFiltered.filter(
+    const textFiltered = !kw
+      ? cabinetFiltered
+      : cabinetFiltered.filter(
+          (r) =>
+            r.compoundName.toLowerCase().includes(kw) ||
+            (r.casNumber ?? '').toLowerCase().includes(kw) ||
+            r.pinCode.toLowerCase().includes(kw) ||
+            (r.alias ?? '').toLowerCase().includes(kw),
+        );
+
+    if (!structureQuery.trim()) return textFiltered;
+    const sq = structureQuery.trim();
+    return textFiltered.filter(
       (r) =>
-        r.compoundName.toLowerCase().includes(kw) ||
-        (r.casNumber ?? '').toLowerCase().includes(kw) ||
-        r.pinCode.toLowerCase().includes(kw) ||
-        (r.alias ?? '').toLowerCase().includes(kw),
+        r.smiles === sq ||
+        (r.inchiKey != null && r.inchiKey.startsWith(sq.substring(0, 14))),
     );
-  }, [query, activeCabId, reagents, cabinets]);
+  }, [query, structureQuery, activeCabId, reagents, cabinets]);
 
   const sorted = useMemo(() => {
     if (!sortState.key) return filtered;
@@ -344,6 +358,24 @@ function ReagentPageInner() {
     setShowPrintModal(true);
   }
 
+  function handleLabelPrint() {
+    if (printTargets.length === 0) {
+      showToast('라벨을 인쇄할 시약이 없어요. 시약을 선택하거나 검색해주세요');
+      return;
+    }
+    setShowLabelModal(true);
+  }
+
+  function handleStructureSearch(smiles: string) {
+    setStructureQuery(smiles);
+    setPage(1);
+  }
+
+  function handleStructureClear() {
+    setStructureQuery('');
+    setPage(1);
+  }
+
   function handleModalDisuse(id: string) {
     setReagents((prev) =>
       prev.map((r) => r.id === id ? { ...r, isActive: false, updatedAt: new Date() } : r),
@@ -436,6 +468,9 @@ function ReagentPageInner() {
             onSearch={handleSearch}
             onRegister={() => setShowRegisterModal(true)}
             onPrint={handlePrint}
+            onLabelPrint={handleLabelPrint}
+            onStructureSearch={() => setShowStructureSearchModal(true)}
+            structureActive={!!structureQuery}
             reagents={sorted}
           />
 
@@ -542,6 +577,22 @@ function ReagentPageInner() {
         reagents={printTargets}
         cabinetName={cabinets.find((c) => c.id === activeCabId)?.name ?? ''}
         onClose={() => setShowPrintModal(false)}
+      />
+
+      {/* ── 라벨 인쇄 모달 ── */}
+      <LabelModal
+        open={showLabelModal}
+        reagents={printTargets}
+        onClose={() => setShowLabelModal(false)}
+      />
+
+      {/* ── 구조 검색 모달 ── */}
+      <StructureSearchModal
+        open={showStructureSearchModal}
+        currentQuery={structureQuery}
+        onSearch={handleStructureSearch}
+        onClear={handleStructureClear}
+        onClose={() => setShowStructureSearchModal(false)}
       />
 
       {/* ── 모아실험으로 넘기기 모달 ── */}

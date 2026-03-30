@@ -8,10 +8,13 @@ interface PageHeaderProps {
   onSearch: (q: string) => void;
   onRegister: () => void;
   onPrint: () => void;
+  onLabelPrint: () => void;
+  onStructureSearch: () => void;
+  structureActive?: boolean;
   reagents?: ReagentItem[];
 }
 
-export default function PageHeader({ searchValue, onSearch, onRegister, onPrint, reagents = [] }: PageHeaderProps) {
+export default function PageHeader({ searchValue, onSearch, onRegister, onPrint, onLabelPrint, onStructureSearch, structureActive = false, reagents = [] }: PageHeaderProps) {
   const { showToast } = useToast();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -76,10 +79,15 @@ export default function PageHeader({ searchValue, onSearch, onRegister, onPrint,
 
         {/* 우측 보조 버튼 */}
         <div style={{ marginLeft: 'auto', display: 'flex', gap: '5px' }}>
-          <button className="btn" onClick={() => showToast('라벨 인쇄 준비 중...')}>라벨</button>
+          <button className="btn" onClick={onLabelPrint}>라벨</button>
           <button className="btn" onClick={onPrint}>A4 인쇄</button>
           <button className="btn" onClick={handleExcelDownload}>엑셀 다운로드</button>
-          <button className="btn" onClick={() => showToast('구조 검색 화면으로 이동합니다')}>구조 검색</button>
+          <button
+            className={structureActive ? 'btn btn-primary' : 'btn'}
+            onClick={onStructureSearch}
+          >
+            {structureActive ? '구조 검색 ✓' : '구조 검색'}
+          </button>
         </div>
       </div>
     </div>
