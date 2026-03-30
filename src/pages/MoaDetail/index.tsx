@@ -13,6 +13,7 @@ import HistoryCard from './HistoryCard'
 interface Props {
   card: MoaCard
   onBack: () => void
+  isMobile?: boolean
 }
 
 // initial state
@@ -53,7 +54,7 @@ export type SideRow = {
 export type HistEntry = { at: string; actor: string; type: 'create'|'edit'|'sign'; desc: string }
 export type SigState = { status: 'unsigned'|'signed'|'locked'; signerName: string; signedAt: string|null; lockedAt: string|null; hash: string }
 
-export default function MoaDetailPage({ card, onBack }: Props) {
+export default function MoaDetailPage({ card, onBack, isMobile = false }: Props) {
   const [exp, setExp] = useState<Exp[]>(initExp)
   const [com, setCom] = useState<Com[]>(initCom)
   const [baseTarget, setBaseTarget] = useState<BaseTarget>('exp')
@@ -256,6 +257,9 @@ export default function MoaDetailPage({ card, onBack }: Props) {
     downloadJson(data, filename)
   }
 
+  // 모바일 탭 상태
+  const [mobileTab, setMobileTab] = useState<'quant' | 'cond' | 'rec' | 'result' | 'more'>('quant')
+
   // 서명 해제 on edit (signed → unsigned)
   const markEdited = () => {
     if (sig.status === 'signed') {
@@ -279,6 +283,233 @@ export default function MoaDetailPage({ card, onBack }: Props) {
     return (mmol / vol).toFixed(3) + ' M'
   })()
 
+  /* ── 공통: 종료 확인 모달 ── */
+  const closeModal = closeConfirm ? (
+    <div className="confirm-toast">
+      <div className="confirm-box">
+        <div style={{ fontWeight: 500, marginBottom: 8 }}>종료처리 하시겠습니까?</div>
+        <div style={{ fontSize: 11, color: 'var(--tx3)', marginBottom: 16, lineHeight: 1.7 }}>
+          종료처리 후에는 수정을 할 수 없습니다.
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
+          <button className="btn" onClick={() => setCloseConfirm(false)}>취소</button>
+          <button className="btn btn-grn" onClick={() => { setCloseConfirm(false); addHistory('sign', '실험 종료처리') }}>종료</button>
+        </div>
+      </div>
+    </div>
+  ) : null
+
+  /* ══════════════════════════════════════════
+     모바일 레이아웃
+  ══════════════════════════════════════════ */
+  if (isMobile) {
+    const MOBILE_TABS = [
+      { key: 'quant',  label: '정량' },
+      { key: 'cond',   label: '조건' },
+      { key: 'rec',    label: '기록' },
+      { key: 'result', label: '결과' },
+      { key: 'more',   label: '더보기' },
+    ] as const
+
+    return (
+      <>
+        {/* ── 모바일 상단 바 ── */}
+        <div style={{
+          background: 'var(--surface, #fff)', borderBottom: '1px solid var(--border, #e5e7eb)',
+          padding: '0 14px', flexShrink: 0, display: 'flex', flexDirection: 'column',
+        }}>
+          {/* Row 1: 뒤로 + 실험번호 + 저장 */}
+          <div style={{ height: '44px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              className="btn btn-b"
+              style={{ padding: '4px 10px', fontSize: '12px' }}
+              onClick={onBack}
+            >← 목록</button>
+            <span style={{ fontSize: '12px', fontFamily: 'var(--fm, monospace)', color: 'var(--tx3, #9ca3af)' }}>{card.id}</span>
+            <span style={{ fontSize: '13px', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{metaTitle}</span>
+            <button
+              className="btn btn-p"
+              style={{ padding: '4px 12px', fontSize: '12px', flexShrink: 0, opacity: saving ? 0.6 : 1 }}
+              onClick={updateLastMod}
+              disabled={saving}
+            >{saving ? '저장 중…' : '💾 저장'}</button>
+          </div>
+
+          {/* Row 2: 탭 바 */}
+          <div style={{ display: 'flex', borderTop: '1px solid var(--border, #e5e7eb)', overflowX: 'auto' }}>
+            {MOBILE_TABS.map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setMobileTab(tab.key)}
+                style={{
+                  flex: 1, padding: '8px 4px', border: 'none', background: 'none',
+                  cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', whiteSpace: 'nowrap',
+                  color: mobileTab === tab.key ? 'var(--blue, #2563eb)' : 'var(--tx3, #9ca3af)',
+                  fontWeight: mobileTab === tab.key ? 600 : 400,
+                  borderBottom: mobileTab === tab.key ? '2px solid var(--blue, #2563eb)' : '2px solid transparent',
+                  transition: 'color .12s, border-color .12s',
+                }}
+              >{tab.label}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── 탭 콘텐츠 ── */}
+        {!dataLoaded ? (
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--tx3)', fontSize: 12 }}>
+            실험 데이터 로딩 중…
+          </div>
+        ) : (
+          <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+
+            {/* ──── 정량 탭 ──── */}
+            {mobileTab === 'quant' && (
+              <div>
+                {/* Scheme 미니 */}
+                <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border, #e5e7eb)', background: 'var(--surface, #fff)' }}>
+                  <div style={{ fontSize: '10px', fontWeight: 500, color: 'var(--tx3)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: '6px' }}>Scheme</div>
+                  <div className="sb" style={{ overflowX: 'auto' }}>
+                    <div className="cbox"><div className="vbadge">변수</div><div className="cl clE">E</div><div className="cm">실험별 상이</div></div>
+                    <div className="cplus">+</div>
+                    {com.map((c, i) => (
+                      <React.Fragment key={i}>
+                        <div className="cbox"><div className="cl">{String.fromCharCode(65 + i)}</div><div className="cm">{c.eq} eq</div></div>
+                        {i < com.length - 1 && <div className="cplus">+</div>}
+                      </React.Fragment>
+                    ))}
+                    <div className="aw" style={{ margin: '0 8px' }}><div className="al" /></div>
+                    <div className="cprod"><div className="cprod-l">P</div></div>
+                  </div>
+                </div>
+                {/* 정량 테이블 (가로 스크롤) */}
+                <div style={{ overflowX: 'auto' }}>
+                  <QuantTable
+                    exp={exp} com={com} baseTarget={baseTarget} refOn={refOn}
+                    onExpChange={(newExp) => { setExp(newExp); markEdited() }}
+                    onComChange={(newCom) => { setCom(newCom); markEdited() }}
+                    onBaseChange={setBaseTarget}
+                    onRefChange={setRefOn}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* ──── 조건 탭 ──── */}
+            {mobileTab === 'cond' && (
+              <div style={{ padding: '14px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '14px' }}>실험 조건</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  {/* 온도 */}
+                  <MobileCondRow label="반응 온도" unit="°C">
+                    <input className="cond-inp" style={{ width: '100%' }} placeholder="—" value={cond.temp} onChange={e => setCond(p => ({ ...p, temp: e.target.value }))} />
+                  </MobileCondRow>
+                  {/* 시간 */}
+                  <MobileCondRow label="반응 시간" unit="h">
+                    <input className="cond-inp" style={{ width: '100%' }} placeholder="—" value={cond.time} onChange={e => setCond(p => ({ ...p, time: e.target.value }))} />
+                  </MobileCondRow>
+                  {/* 대기 */}
+                  <MobileCondRow label="대기 조건">
+                    <select className="cond-sel" style={{ width: '100%' }} value={cond.atm} onChange={e => setCond(p => ({ ...p, atm: e.target.value }))}>
+                      <option value="">선택</option>
+                      <option>N₂</option><option>Ar</option><option>Air</option><option>진공</option>
+                    </select>
+                  </MobileCondRow>
+                  {/* 용매 */}
+                  <MobileCondRow label="용매">
+                    <div style={{ display: 'flex', gap: '6px', width: '100%' }}>
+                      <select className="cond-sel" style={{ flex: 1 }} value={cond.solvent} onChange={e => setCond(p => ({ ...p, solvent: e.target.value }))}>
+                        <option value="">선택</option>
+                        <option>THF</option><option>DCM</option><option>DMF</option><option>Toluene</option>
+                        <option>EtOH</option><option>MeCN</option><option>H₂O</option>
+                      </select>
+                      <input className="cond-inp" style={{ flex: 1 }} placeholder="직접 입력" value={cond.solventCustom} onChange={e => setCond(p => ({ ...p, solventCustom: e.target.value }))} />
+                    </div>
+                  </MobileCondRow>
+                  {/* 용매 용량 */}
+                  <MobileCondRow label="용매 용량" unit="mL">
+                    <input className="cond-inp" style={{ width: '100%' }} placeholder="—" value={cond.solventVol} onChange={e => setCond(p => ({ ...p, solventVol: e.target.value }))} />
+                  </MobileCondRow>
+                  {/* 농도 자동 */}
+                  {concVal && (
+                    <MobileCondRow label="농도 (자동)" unit="M">
+                      <span className="mmol-auto has">{concVal}</span>
+                    </MobileCondRow>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ──── 기록 탭 ──── */}
+            {mobileTab === 'rec' && (
+              <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', height: '100%' }}>
+                <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '10px' }}>실험 기록</div>
+                {/* 탭 선택 */}
+                <div style={{ display: 'flex', gap: '6px', marginBottom: '10px', overflowX: 'auto' }}>
+                  {['공통', ...exp.map(e => e.id)].map(tab => (
+                    <button
+                      key={tab}
+                      onClick={() => setRecTab(tab)}
+                      style={{
+                        whiteSpace: 'nowrap', padding: '4px 12px', fontSize: '11px',
+                        borderRadius: '20px', border: '1.5px solid', cursor: 'pointer',
+                        fontFamily: 'inherit', flexShrink: 0,
+                        background: recTab === tab ? 'var(--blue, #2563eb)' : 'transparent',
+                        color: recTab === tab ? '#fff' : 'var(--tx3)',
+                        borderColor: recTab === tab ? 'var(--blue, #2563eb)' : 'var(--bd2, #e5e7eb)',
+                      }}
+                    >{tab}</button>
+                  ))}
+                </div>
+                <textarea
+                  className="rec-ta"
+                  rows={10}
+                  style={{ flex: 1, width: '100%', boxSizing: 'border-box', minHeight: '200px' }}
+                  placeholder={`${recTab} 실험 기록을 입력하세요...`}
+                  value={recTexts[recTab] ?? ''}
+                  onChange={e => setRecTexts(p => ({ ...p, [recTab]: e.target.value }))}
+                />
+              </div>
+            )}
+
+            {/* ──── 결과 탭 ──── */}
+            {mobileTab === 'result' && (
+              <div style={{ overflowX: 'auto' }}>
+                <ResultSection
+                  exp={exp} com={com} baseTarget={baseTarget}
+                  resRows={resRows} setResRows={setResRows}
+                  onEdit={() => addHistory('edit', '실험결과 입력됨')}
+                />
+              </div>
+            )}
+
+            {/* ──── 더보기 탭 ──── */}
+            {mobileTab === 'more' && (
+              <div>
+                <DashboardCard
+                  exp={exp} resRows={resRows}
+                  dashNote={dashNote} setDashNote={setDashNote}
+                />
+                <CommentsCard />
+                <div style={{ padding: '0 0 12px' }}>
+                  <SignatureCard sig={sig} setSig={setSig} onHistory={addHistory} style={{}} />
+                  <div style={{ height: '10px' }} />
+                  <HistoryCard history={history} style={{}} />
+                </div>
+              </div>
+            )}
+
+            <div style={{ height: '20px', flexShrink: 0 }} />
+          </div>
+        )}
+
+        {closeModal}
+      </>
+    )
+  }
+
+  /* ══════════════════════════════════════════
+     데스크톱 레이아웃 (기존)
+  ══════════════════════════════════════════ */
   return (
     <>
       {/* Button bar */}
@@ -507,22 +738,20 @@ export default function MoaDetailPage({ card, onBack }: Props) {
 
       </div>}
 
-      {/* 종료 확인 모달 */}
-      {closeConfirm && (
-        <div className="confirm-toast">
-          <div className="confirm-box">
-            <div style={{ fontWeight: 500, marginBottom: 8 }}>종료처리 하시겠습니까?</div>
-            <div style={{ fontSize: 11, color: 'var(--tx3)', marginBottom: 16, lineHeight: 1.7 }}>
-              종료처리 후에는 수정을 할 수 없습니다.
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
-              <button className="btn" onClick={() => setCloseConfirm(false)}>취소</button>
-              <button className="btn btn-grn" onClick={() => { setCloseConfirm(false); addHistory('sign', '실험 종료처리') }}>종료</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {closeModal}
     </>
+  )
+}
+
+/* ── 모바일 조건 행 ── */
+function MobileCondRow({ label, unit, children }: { label: React.ReactNode; unit?: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div style={{ fontSize: '10px', color: 'var(--tx3)', fontWeight: 500, marginBottom: '4px' }}>
+        {label}{unit && <span style={{ color: 'var(--tx3)', fontWeight: 400 }}> ({unit})</span>}
+      </div>
+      {children}
+    </div>
   )
 }
 
