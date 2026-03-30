@@ -11,6 +11,7 @@
  */
 import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import type { Cabinet, ReagentItem, RecentSearch, SortState, StorageCondition, ViewMode } from '@/types/reagent';
 import type { ParsedReagentRow } from '@/utils/excel';
 import { useBasketStore } from '@/store/basketStore';
@@ -55,6 +56,7 @@ function ReagentPageInner() {
   const { showToast } = useToast();
   const basket = useBasketStore();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   // ── 시약장 + 시약 (mutable state) ────────────────────────────
   const [cabinets, setCabinets] = useState<Cabinet[]>(MOCK_CABINETS);
@@ -99,6 +101,7 @@ function ReagentPageInner() {
   const [showLabelModal, setShowLabelModal] = useState(false);
   const [showStructureSearchModal, setShowStructureSearchModal] = useState(false);
   const [structureQuery, setStructureQuery] = useState('');
+  const [basketSheetOpen, setBasketSheetOpen] = useState(false);
 
   const modalReagent = reagents.find((r) => r.id === modalId) ?? null;
 
@@ -384,34 +387,266 @@ function ReagentPageInner() {
     showToast('말소 처리되었습니다');
   }
 
+  /* ── 공통 GNB ── */
+  const gnb = (
+    <header style={{
+      height: '48px', flexShrink: 0,
+      background: 'var(--surface)', borderBottom: '1px solid var(--border)',
+      display: 'flex', alignItems: 'center', padding: isMobile ? '0 14px' : '0 20px', gap: '12px', zIndex: 100,
+    }}>
+      <a href="#" style={{ display: 'flex', alignItems: 'center', gap: '7px', fontWeight: 500, fontSize: '15px', color: 'var(--text)', textDecoration: 'none' }}>
+        <div style={{ width: '28px', height: '28px', background: 'var(--blue)', borderRadius: '7px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+            <circle cx="7.5" cy="7.5" r="5.5" stroke="white" strokeWidth="1.4"/>
+            <path d="M4.5 7.5h6M7.5 4.5v6" stroke="white" strokeWidth="1.4" strokeLinecap="round"/>
+          </svg>
+        </div>
+        Jinu<span style={{ color: 'var(--blue)' }}>note</span>
+      </a>
+      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: isMobile ? '10px' : '14px' }}>
+        {/* 모바일: 장바구니 아이콘 */}
+        {isMobile && (
+          <button
+            onClick={() => setBasketSheetOpen(true)}
+            style={{ position: 'relative', background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', lineHeight: 1, padding: '2px' }}
+          >
+            🛒
+            {basket.count() > 0 && (
+              <span style={{
+                position: 'absolute', top: '-4px', right: '-4px',
+                minWidth: '16px', height: '16px', padding: '0 4px',
+                background: 'var(--blue)', color: '#fff',
+                borderRadius: '8px', fontSize: '9px', fontWeight: 600,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxSizing: 'border-box',
+              }}>
+                {basket.count()}
+              </span>
+            )}
+          </button>
+        )}
+        <span style={{ fontSize: '12px', color: 'var(--muted)' }}>채은</span>
+        <div style={{
+          width: '30px', height: '30px', borderRadius: '50%',
+          background: 'var(--blue-lt)', color: 'var(--blue)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '11px', fontWeight: 500, cursor: 'pointer',
+        }}>CE</div>
+      </div>
+    </header>
+  );
+
+  /* ── 공통 모달/시트 ── */
+  const modals = (
+    <>
+      {/* ── 시약 데이터 모달 ── */}
+      {modalId && (
+        <ReagentDataModal
+          reagent={modalReagent}
+          recentUsers={MOCK_RECENT_USERS}
+          cabinets={cabinets.map((c) => ({ id: c.id, name: c.name }))}
+          onClose={() => setModalId(null)}
+          onSave={handleModalSave}
+          onDisuse={handleModalDisuse}
+        />
+      )}
+      {showRegisterModal && (
+        <RegisterModal
+          cabinets={cabinets}
+          activeCabinetId={activeCabId}
+          onClose={() => setShowRegisterModal(false)}
+          onRegister={handleRegister}
+          onBulkRegister={handleBulkRegister}
+        />
+      )}
+      {showAddCabinetModal && (
+        <AddCabinetModal
+          onClose={() => setShowAddCabinetModal(false)}
+          onCreated={handleCabinetCreated}
+        />
+      )}
+      <PrintModal
+        open={showPrintModal}
+        reagents={printTargets}
+        cabinetName={cabinets.find((c) => c.id === activeCabId)?.name ?? ''}
+        onClose={() => setShowPrintModal(false)}
+      />
+      <LabelModal
+        open={showLabelModal}
+        reagents={printTargets}
+        onClose={() => setShowLabelModal(false)}
+      />
+      <StructureSearchModal
+        open={showStructureSearchModal}
+        currentQuery={structureQuery}
+        onSearch={handleStructureSearch}
+        onClear={handleStructureClear}
+        onClose={() => setShowStructureSearchModal(false)}
+      />
+      <SendToMoaModal
+        open={sendToMoaOpen}
+        basket={basket.items}
+        onClose={() => setSendToMoaOpen(false)}
+        onSuccess={(_moaId) => {
+          setSendToMoaOpen(false);
+          basket.clear();
+          showToast('모아실험으로 넘겼습니다');
+          navigate('/');
+        }}
+      />
+    </>
+  );
+
+  /* ══════════════════════════════════
+     모바일 레이아웃
+  ══════════════════════════════════ */
+  if (isMobile) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', overflow: 'hidden' }}>
+        {gnb}
+
+        {/* 콘텐츠 영역 */}
+        <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+          <PageHeader
+            isMobile
+            searchValue={query}
+            onSearch={handleSearch}
+            onRegister={() => setShowRegisterModal(true)}
+            onPrint={handlePrint}
+            onLabelPrint={handleLabelPrint}
+            onStructureSearch={() => setShowStructureSearchModal(true)}
+            structureActive={!!structureQuery}
+            reagents={sorted}
+          />
+
+          <CabinetTabBar
+            cabinets={cabinets}
+            reagents={reagents}
+            activeCabinetId={activeCabId}
+            onTabChange={(id) => { setActiveCabId(id); setPage(1); }}
+            onAddCabinet={() => setShowAddCabinetModal(true)}
+          />
+
+          {/* 툴바 */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', flexShrink: 0, gap: '8px', borderBottom: '1px solid var(--border)' }}>
+            <span style={{ fontSize: '11px', color: 'var(--hint)' }}>총 {sorted.length}개 시약</span>
+            <ViewToggle view={view} onChange={changeView} />
+          </div>
+
+          {/* 카드/테이블 + 페이지네이션 */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '10px 10px 0', display: 'flex', flexDirection: 'column' }}>
+            <RecentSearchChips searches={recentSearches} onChipClick={applyChip} />
+            <div style={{ flex: 1, marginTop: '6px' }}>
+              {view === 'card' ? (
+                <CardView
+                  reagents={pageData}
+                  selectedIds={selectedIds}
+                  onSelect={handleSelect}
+                  onCardClick={setModalId}
+                  cols={1}
+                />
+              ) : (
+                <QuantTable
+                  reagents={pageData}
+                  selectedIds={selectedIds}
+                  onSelect={handleSelect}
+                  onSelectAll={handleSelectAll}
+                  onRowClick={setModalId}
+                  sortState={sortState}
+                  onSort={handleSort}
+                />
+              )}
+            </div>
+            <Pagination
+              currentPage={page}
+              totalPages={numPages}
+              onChange={(p) => setPage(p)}
+            />
+            <div style={{ height: '8px', flexShrink: 0 }} />
+          </div>
+        </main>
+
+        {/* 하단 네비게이션 */}
+        <nav aria-label="하단 메뉴" style={{
+          height: '56px', flexShrink: 0,
+          background: 'var(--surface)', borderTop: '1px solid var(--border)',
+          display: 'flex', alignItems: 'stretch',
+          zIndex: 50,
+        }}>
+          {[
+            { icon: '🏠', label: '홈', onClick: () => navigate('/'), active: false },
+            { icon: '🧪', label: '시약장', onClick: undefined, active: true },
+            { icon: '📓', label: '연구노트', onClick: () => navigate('/note'), active: false },
+          ].map(({ icon, label, onClick, active }) => (
+            <button
+              key={label}
+              onClick={onClick}
+              style={{
+                flex: 1, display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center', gap: '2px',
+                background: 'none', border: 'none', cursor: onClick ? 'pointer' : 'default',
+                color: active ? 'var(--blue)' : 'var(--hint)',
+                fontSize: '10px', fontFamily: 'inherit', padding: '6px 0',
+              }}
+            >
+              <span style={{ fontSize: '20px', lineHeight: 1 }}>{icon}</span>
+              <span style={{ fontWeight: active ? 600 : 400 }}>{label}</span>
+            </button>
+          ))}
+        </nav>
+
+        {/* 장바구니 바텀시트 */}
+        {basketSheetOpen && (
+          <>
+            <div
+              onClick={() => setBasketSheetOpen(false)}
+              style={{
+                position: 'fixed', inset: 0,
+                background: 'rgba(0,0,0,0.4)',
+                zIndex: 200,
+              }}
+            />
+            <div style={{
+              position: 'fixed', left: 0, right: 0, bottom: 0,
+              height: '65dvh',
+              background: 'var(--surface)',
+              borderRadius: '16px 16px 0 0',
+              zIndex: 201,
+              display: 'flex', flexDirection: 'column',
+              overflow: 'hidden',
+              boxShadow: '0 -4px 24px rgba(0,0,0,.15)',
+            }}>
+              {/* 드래그 핸들 */}
+              <div style={{ padding: '10px 0 4px', display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
+                <div style={{ width: '40px', height: '4px', borderRadius: '2px', background: 'var(--border2)' }} />
+              </div>
+              <BasketPanel
+                asSheet
+                cabinets={cabinets}
+                activeCabinetId={activeCabId}
+                allReagents={reagents}
+                isFavTab={isFavTab}
+                onAddToFav={() => { handleAddToFav(); setBasketSheetOpen(false); }}
+                onRemoveFromFav={() => { handleRemoveFromFav(); setBasketSheetOpen(false); }}
+                onAddToOtherCabinet={handleAddToOtherCabinet}
+                onSendToMoa={() => { setBasketSheetOpen(false); setSendToMoaOpen(true); }}
+              />
+            </div>
+          </>
+        )}
+
+        {modals}
+      </div>
+    );
+  }
+
+  /* ══════════════════════════════════
+     데스크톱 레이아웃
+  ══════════════════════════════════ */
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
 
-      {/* ── GNB (48px) ── */}
-      <header style={{
-        height: '48px', flexShrink: 0,
-        background: 'var(--surface)', borderBottom: '1px solid var(--border)',
-        display: 'flex', alignItems: 'center', padding: '0 20px', gap: '12px', zIndex: 100,
-      }}>
-        <a href="#" style={{ display: 'flex', alignItems: 'center', gap: '7px', fontWeight: 500, fontSize: '15px', color: 'var(--text)', textDecoration: 'none' }}>
-          <div style={{ width: '28px', height: '28px', background: 'var(--blue)', borderRadius: '7px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
-              <circle cx="7.5" cy="7.5" r="5.5" stroke="white" strokeWidth="1.4"/>
-              <path d="M4.5 7.5h6M7.5 4.5v6" stroke="white" strokeWidth="1.4" strokeLinecap="round"/>
-            </svg>
-          </div>
-          Jinu<span style={{ color: 'var(--blue)' }}>note</span>
-        </a>
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <span style={{ fontSize: '12px', color: 'var(--muted)' }}>채은</span>
-          <div style={{
-            width: '30px', height: '30px', borderRadius: '50%',
-            background: 'var(--blue-lt)', color: 'var(--blue)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '11px', fontWeight: 500, cursor: 'pointer',
-          }}>CE</div>
-        </div>
-      </header>
+      {gnb}
 
       {/* ── 바디 ── */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
@@ -540,73 +775,7 @@ function ReagentPageInner() {
         </main>
       </div>
 
-      {/* ── 시약 데이터 모달 ── */}
-      {modalId && (
-        <ReagentDataModal
-          reagent={modalReagent}
-          recentUsers={MOCK_RECENT_USERS}
-          cabinets={cabinets.map((c) => ({ id: c.id, name: c.name }))}
-          onClose={() => setModalId(null)}
-          onSave={handleModalSave}
-          onDisuse={handleModalDisuse}
-        />
-      )}
-
-      {/* ── 시약 등록 모달 ── */}
-      {showRegisterModal && (
-        <RegisterModal
-          cabinets={cabinets}
-          activeCabinetId={activeCabId}
-          onClose={() => setShowRegisterModal(false)}
-          onRegister={handleRegister}
-          onBulkRegister={handleBulkRegister}
-        />
-      )}
-
-      {/* ── 시약장 추가 모달 ── */}
-      {showAddCabinetModal && (
-        <AddCabinetModal
-          onClose={() => setShowAddCabinetModal(false)}
-          onCreated={handleCabinetCreated}
-        />
-      )}
-
-      {/* ── A4 인쇄 모달 ── */}
-      <PrintModal
-        open={showPrintModal}
-        reagents={printTargets}
-        cabinetName={cabinets.find((c) => c.id === activeCabId)?.name ?? ''}
-        onClose={() => setShowPrintModal(false)}
-      />
-
-      {/* ── 라벨 인쇄 모달 ── */}
-      <LabelModal
-        open={showLabelModal}
-        reagents={printTargets}
-        onClose={() => setShowLabelModal(false)}
-      />
-
-      {/* ── 구조 검색 모달 ── */}
-      <StructureSearchModal
-        open={showStructureSearchModal}
-        currentQuery={structureQuery}
-        onSearch={handleStructureSearch}
-        onClear={handleStructureClear}
-        onClose={() => setShowStructureSearchModal(false)}
-      />
-
-      {/* ── 모아실험으로 넘기기 모달 ── */}
-      <SendToMoaModal
-        open={sendToMoaOpen}
-        basket={basket.items}
-        onClose={() => setSendToMoaOpen(false)}
-        onSuccess={(_moaId) => {
-          setSendToMoaOpen(false);
-          basket.clear();
-          showToast('모아실험으로 넘겼습니다');
-          navigate('/');
-        }}
-      />
+      {modals}
     </div>
   );
 }

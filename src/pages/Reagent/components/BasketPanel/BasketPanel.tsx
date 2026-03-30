@@ -22,6 +22,8 @@ interface BasketPanelProps {
   onRemoveFromFav: () => void;
   onAddToOtherCabinet: (targetCabId: string, toAddIds: string[], alreadyCount: number) => void;
   onSendToMoa?: () => void;
+  /** 모바일 바텀시트 모드 — 너비/테두리 제거, 부모가 크기 제어 */
+  asSheet?: boolean;
 }
 
 export default function BasketPanel({
@@ -33,6 +35,7 @@ export default function BasketPanel({
   onRemoveFromFav,
   onAddToOtherCabinet,
   onSendToMoa,
+  asSheet = false,
 }: BasketPanelProps) {
   const { items, remove, clear } = useBasketStore();
   const itemList = Object.values(items);
@@ -55,7 +58,11 @@ export default function BasketPanel({
   return (
     <aside
       aria-label="선택한 시약 장바구니"
-      style={{
+      style={asSheet ? {
+        flex: 1,
+        background: 'var(--surface)',
+        display: 'flex', flexDirection: 'column', overflow: 'hidden',
+      } : {
         width: '200px', flexShrink: 0,
         background: 'var(--surface)', borderLeft: '1px solid var(--border)',
         display: 'flex', flexDirection: 'column', overflow: 'hidden',

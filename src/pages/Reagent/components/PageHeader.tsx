@@ -12,9 +12,10 @@ interface PageHeaderProps {
   onStructureSearch: () => void;
   structureActive?: boolean;
   reagents?: ReagentItem[];
+  isMobile?: boolean;
 }
 
-export default function PageHeader({ searchValue, onSearch, onRegister, onPrint, onLabelPrint, onStructureSearch, structureActive = false, reagents = [] }: PageHeaderProps) {
+export default function PageHeader({ searchValue, onSearch, onRegister, onPrint, onLabelPrint, onStructureSearch, structureActive = false, reagents = [], isMobile = false }: PageHeaderProps) {
   const { showToast } = useToast();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -37,6 +38,68 @@ export default function PageHeader({ searchValue, onSearch, onRegister, onPrint,
     }
   }
 
+  /* ── 모바일 레이아웃 ── */
+  if (isMobile) {
+    return (
+      <div style={{
+        background: 'var(--surface)',
+        borderBottom: '1px solid var(--border)',
+        padding: '8px 12px 0',
+        flexShrink: 0,
+      }}>
+        {/* Row 1: 검색 + 등록 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+          <div style={{ position: 'relative', flex: 1 }}>
+            <input
+              type="text"
+              defaultValue={searchValue}
+              placeholder="시약 검색"
+              onChange={handleInput}
+              aria-label="시약 검색"
+              style={{
+                width: '100%', padding: '8px 34px 8px 12px', boxSizing: 'border-box',
+                border: '1px solid var(--border2)', borderRadius: 'var(--r)',
+                fontSize: '13px', fontFamily: 'inherit',
+                background: 'var(--surface2)', color: 'var(--text)', outline: 'none',
+              }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--blue-mid)'; e.currentTarget.style.background = 'var(--surface)'; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border2)'; e.currentTarget.style.background = 'var(--surface2)'; }}
+            />
+            <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--hint)', fontSize: '16px' }}>⌕</span>
+          </div>
+          <button className="btn btn-primary" onClick={onRegister} style={{ whiteSpace: 'nowrap', fontSize: '12px' }}>+ 등록</button>
+        </div>
+
+        {/* Row 2: 아이콘 툴바 */}
+        <div style={{ display: 'flex', gap: '6px', paddingBottom: '8px', overflowX: 'auto' }}>
+          {[
+            { label: '🏷 라벨', onClick: onLabelPrint, active: false },
+            { label: '🖨 인쇄', onClick: onPrint, active: false },
+            { label: '📊 엑셀', onClick: handleExcelDownload, active: false },
+            { label: structureActive ? '🔬 구조 ✓' : '🔬 구조', onClick: onStructureSearch, active: structureActive },
+          ].map(({ label, onClick, active }) => (
+            <button
+              key={label}
+              onClick={onClick}
+              style={{
+                whiteSpace: 'nowrap', padding: '5px 10px', fontSize: '11px',
+                borderRadius: 'var(--r)', border: '1px solid',
+                cursor: 'pointer', fontFamily: 'inherit',
+                background: active ? 'var(--blue)' : 'var(--surface2)',
+                color: active ? '#fff' : 'var(--muted)',
+                borderColor: active ? 'var(--blue)' : 'var(--border2)',
+                flexShrink: 0,
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  /* ── 데스크톱 레이아웃 ── */
   return (
     <div style={{
       background: 'var(--surface)',

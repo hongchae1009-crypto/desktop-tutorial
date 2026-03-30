@@ -6,9 +6,10 @@ interface CardViewProps {
   selectedIds: Set<string>;
   onSelect: (id: string, checked: boolean) => void;
   onCardClick: (id: string) => void;
+  cols?: number;
 }
 
-export default function CardView({ reagents, selectedIds, onSelect, onCardClick }: CardViewProps) {
+export default function CardView({ reagents, selectedIds, onSelect, onCardClick, cols = 3 }: CardViewProps) {
   if (reagents.length === 0) {
     return (
       <div style={{
@@ -23,7 +24,7 @@ export default function CardView({ reagents, selectedIds, onSelect, onCardClick 
   return (
     <div style={{
       display: 'grid',
-      gridTemplateColumns: 'repeat(3, 1fr)',
+      gridTemplateColumns: `repeat(${cols}, 1fr)`,
       gap: '9px',
       flex: 1,
       overflowY: 'auto',
