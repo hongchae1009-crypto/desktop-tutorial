@@ -28,6 +28,8 @@ export interface Cabinet {
   count: number;
   description?: string;
   members?: CabinetMember[];
+  /** true = 자체 합성 COA 발행 기능 활성화 */
+  coaEnabled?: boolean;
 }
 
 // ── 시약장 멤버 ───────────────────────────────────────────────
@@ -71,6 +73,8 @@ export interface ReagentItem {
   registeredBy: string;
   isActive: boolean;
   storageConditions?: StorageCondition[];
+  /** true = 자체 합성 시약 (COA 발행 가능) */
+  isSynthesized?: boolean;
   // 참조 시약 관련
   isReference?: boolean;
   originId?: string;

@@ -41,6 +41,7 @@ import LabelModal          from './components/LabelModal/LabelModal';
 import StructureSearchModal from './components/StructureSearchModal/StructureSearchModal';
 import QrModal             from './components/QrModal/QrModal';
 import QrScanModal         from './components/QrScanModal/QrScanModal';
+import CoaModal            from './components/CoaModal/CoaModal';
 
 const PER_PAGE_CARD  = 9;
 const PER_PAGE_TABLE = 20;
@@ -106,6 +107,7 @@ function ReagentPageInner() {
   const [basketSheetOpen, setBasketSheetOpen] = useState(false);
   const [qrTargetId, setQrTargetId] = useState<string | null>(null);
   const [showQrScan, setShowQrScan] = useState(false);
+  const [coaReagentId, setCoaReagentId] = useState<string | null>(null);
 
   const modalReagent = reagents.find((r) => r.id === modalId) ?? null;
 
@@ -462,6 +464,11 @@ function ReagentPageInner() {
           onClose={() => setModalId(null)}
           onSave={handleModalSave}
           onDisuse={handleModalDisuse}
+          showCoa={!!(
+            cabinets.find((c) => c.id === modalReagent?.cabinetId)?.coaEnabled ||
+            modalReagent?.isSynthesized
+          )}
+          onCoa={(r) => { setModalId(null); setCoaReagentId(r.id); }}
         />
       )}
       {showRegisterModal && (
@@ -507,6 +514,12 @@ function ReagentPageInner() {
         <QrScanModal
           onClose={() => setShowQrScan(false)}
           onResult={handleQrScan}
+        />
+      )}
+      {coaReagentId && reagents.find((r) => r.id === coaReagentId) && (
+        <CoaModal
+          reagent={reagents.find((r) => r.id === coaReagentId)!}
+          onClose={() => setCoaReagentId(null)}
         />
       )}
       <SendToMoaModal

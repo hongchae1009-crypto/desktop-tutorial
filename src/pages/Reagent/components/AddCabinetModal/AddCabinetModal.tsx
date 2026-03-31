@@ -38,6 +38,7 @@ export default function AddCabinetModal({ onClose, onCreated }: AddCabinetModalP
   const [cabName, setCabName] = useState('');
   const [color, setColor] = useState('');
   const [description, setDescription] = useState('');
+  const [coaEnabled, setCoaEnabled] = useState(false);
 
   // Step 2
   const [file, setFile] = useState<File | null>(null);
@@ -106,6 +107,7 @@ export default function AddCabinetModal({ onClose, onCreated }: AddCabinetModalP
       count: 0,
       description: description.trim() || undefined,
       members,
+      coaEnabled: coaEnabled || undefined,
     };
     setCreatedCab(newCab);
     setStep(4);
@@ -232,6 +234,35 @@ export default function AddCabinetModal({ onClose, onCreated }: AddCabinetModalP
                   onFocus={(e) => (e.currentTarget.style.borderColor = '#185FA5')}
                   onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--border2)')}
                 />
+              </div>
+
+              {/* COA 모드 토글 */}
+              <div style={{ marginBottom: '14px' }}>
+                <label
+                  htmlFor="coaToggle"
+                  style={{
+                    display: 'flex', alignItems: 'flex-start', gap: '10px',
+                    padding: '12px', borderRadius: '8px', cursor: 'pointer',
+                    background: coaEnabled ? '#EAF3DE' : 'var(--surface2)',
+                    border: `1px solid ${coaEnabled ? '#5DCAA5' : 'var(--border2)'}`,
+                    transition: 'background .15s, border-color .15s',
+                  }}
+                >
+                  <input
+                    id="coaToggle"
+                    type="checkbox"
+                    checked={coaEnabled}
+                    onChange={(e) => setCoaEnabled(e.target.checked)}
+                    style={{ marginTop: '2px', accentColor: '#1D9E75', flexShrink: 0 }}
+                  />
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text)' }}>🔬 자체 합성 COA 모드</div>
+                    <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '2px', lineHeight: 1.5 }}>
+                      이 시약장의 시약에 COA (Certificate of Analysis) 발행 기능을 활성화합니다.<br />
+                      자체 합성 화합물을 관리하는 시약장에만 활성화하세요.
+                    </div>
+                  </div>
+                </label>
               </div>
 
               <div>

@@ -69,6 +69,7 @@ export default function RegisterModal({
   );
   const [storageConditions, setStorageConditions] = useState<StorageCondition[]>([]);
   const [autofilled, setAutofilled] = useState<Set<string>>(new Set());
+  const [isSynthesized, setIsSynthesized] = useState(false);
 
   const [smiles, setSmiles] = useState('');
   const [inchiKey, setInchiKey] = useState('');
@@ -219,6 +220,7 @@ export default function RegisterModal({
       quantity: parseFloat(quantity) || 0,
       unit,
       storageConditions: storageConditions.length ? storageConditions : undefined,
+      isSynthesized: isSynthesized || undefined,
       cabinetId,
       registeredBy: '채은 Choi',
       isActive: true,
@@ -260,7 +262,7 @@ export default function RegisterModal({
     setSuccess(null); setBulkSuccess(null);
     setCompoundName(''); setCasNumber(''); setSupplier(''); setProductNumber('');
     setMw(''); setSmiles(''); setInchiKey('');
-    setQuantity(''); setLocation(''); setStorageConditions([]);
+    setQuantity(''); setLocation(''); setStorageConditions([]); setIsSynthesized(false);
     setAutofilled(new Set()); setAutofillBanner(null); setLinkInput('');
     setMwAutoTag(false); setBulkFile(null); setBulkParsed(null); setBulkFileErr('');
     setSubmitLoading(false);
@@ -556,6 +558,29 @@ export default function RegisterModal({
                   </select>
                 </div>
               </div>
+
+              {/* 자체 합성 시약 플래그 */}
+              <label
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  padding: '8px 10px', borderRadius: 'var(--r)', cursor: 'pointer',
+                  background: isSynthesized ? '#EAF3DE' : 'var(--surface2)',
+                  border: `1px solid ${isSynthesized ? '#5DCAA5' : 'var(--border2)'}`,
+                  transition: 'background .15s, border-color .15s',
+                  marginTop: '2px',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={isSynthesized}
+                  onChange={(e) => setIsSynthesized(e.target.checked)}
+                  style={{ accentColor: '#1D9E75', flexShrink: 0 }}
+                />
+                <span style={{ fontSize: '12px', color: 'var(--text)', userSelect: 'none' }}>
+                  🔬 자체 합성 시약
+                  <span style={{ fontSize: '11px', color: 'var(--muted)', marginLeft: '6px' }}>COA 발행 가능</span>
+                </span>
+              </label>
             </div>
 
             {/* 푸터 */}

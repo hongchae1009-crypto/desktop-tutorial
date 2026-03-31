@@ -20,6 +20,9 @@ interface ReagentDataModalProps {
   onClose: () => void;
   onSave: (id: string, data: Partial<ReagentItem>) => void;
   onDisuse: (id: string) => void;
+  /** COA 발행 가능 여부 (시약장.coaEnabled || 시약.isSynthesized) */
+  showCoa?: boolean;
+  onCoa?: (reagent: ReagentItem) => void;
 }
 
 const STORAGE_CHIP_CONFIG: { key: StorageCondition; label: string; style: string }[] = [
@@ -45,6 +48,8 @@ export default function ReagentDataModal({
   onClose,
   onSave,
   onDisuse,
+  showCoa,
+  onCoa,
 }: ReagentDataModalProps) {
   const { showToast } = useToast();
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -346,9 +351,22 @@ export default function ReagentDataModal({
 
         {/* 푸터 */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', padding: '12px 20px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
-          <button className="btn btn-danger" onClick={handleDisuse} style={{ marginRight: 'auto' }}>
+          <button className="btn btn-danger" onClick={handleDisuse} style={{ marginRight: showCoa ? undefined : 'auto' }}>
             말소 처리
           </button>
+          {showCoa && (
+            <button
+              className="btn"
+              onClick={() => reagent && onCoa?.(reagent)}
+              style={{
+                marginRight: 'auto',
+                background: '#EAF3DE', color: '#3B6D11',
+                borderColor: '#5DCAA5',
+              }}
+            >
+              📄 COA 발행
+            </button>
+          )}
           <button className="btn" onClick={onClose}>닫기</button>
           <button className="btn btn-primary" onClick={handleSave}>저장</button>
         </div>
