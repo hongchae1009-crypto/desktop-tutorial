@@ -5,7 +5,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import type { Cabinet, ReagentItem, StorageCondition } from '@/types/reagent';
-import { fetchByCas, autofillFromLink } from '@/utils/pubchem';
+import { fetchByCas, fetchByName, autofillFromLink } from '@/utils/pubchem';
 import { downloadTemplate, parseExcel } from '@/utils/excel';
 import type { ParsedReagentRow } from '@/utils/excel';
 import { useToast } from '../Toast';
@@ -70,8 +70,12 @@ export default function RegisterModal({
   const [storageConditions, setStorageConditions] = useState<StorageCondition[]>([]);
   const [autofilled, setAutofilled] = useState<Set<string>>(new Set());
 
+  const [smiles, setSmiles] = useState('');
+  const [inchiKey, setInchiKey] = useState('');
+
   const [casLookupLoading, setCasLookupLoading] = useState(false);
   const [casLookupError, setCasLookupError] = useState(false);
+  const [nameLookupLoading, setNameLookupLoading] = useState(false);
 
   // ── 완료 화면 ─────────────────────────────────────────────
   const [success, setSuccess] = useState<{ compound: string; cabinet: string; pin: string } | null>(null);
@@ -99,6 +103,14 @@ export default function RegisterModal({
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
+
+  // CAS 유효 형식 입력 시 자동 PubChem 조회 (debounce 800ms)
+  useEffect(() => {
+    if (!CAS_RE.test(casNumber.trim()) || casLookupLoading) return;
+    const timer = setTimeout(() => { doCasLookup(); }, 800);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [casNumber]);
 
   // ── 유효성 ────────────────────────────────────────────────
   const singleReady = compoundName.trim() && casNumber.trim() && quantity.trim() && location.trim() && cabinetId;
@@ -129,7 +141,8 @@ export default function RegisterModal({
 
   function resetAutofill() {
     setCompoundName(''); setCasNumber(''); setSupplier('');
-    setProductNumber(''); setMw(''); setAutofilled(new Set());
+    setProductNumber(''); setMw(''); setSmiles(''); setInchiKey('');
+    setAutofilled(new Set());
     setAutofillBanner(null); setLinkInput('');
     setMwAutoTag(false);
   }
@@ -141,13 +154,40 @@ export default function RegisterModal({
     try {
       const data = await fetchByCas(casNumber.trim());
       if (!data) throw new Error('not found');
-      if (data.mw) { setMw(String(data.mw)); setMwAutoTag(true); }
-      if (data.iupacName && !compoundName.trim()) setCompoundName(data.iupacName);
+      const filled = new Set<string>(autofilled);
+      if (data.mw) { setMw(String(data.mw)); setMwAutoTag(true); filled.add('mw'); }
+      if (data.iupacName && !compoundName.trim()) { setCompoundName(data.iupacName); filled.add('compound'); }
+      if (data.smiles) { setSmiles(data.smiles); filled.add('smiles'); }
+      if (data.inchiKey) setInchiKey(data.inchiKey);
+      setAutofilled(filled);
     } catch {
       setCasLookupError(true);
       setTimeout(() => setCasLookupError(false), 2000);
     } finally {
       setCasLookupLoading(false);
+    }
+  }
+
+  // ── 물질명 PubChem 조회 ───────────────────────────────────
+  async function doNameLookup() {
+    const name = compoundName.trim();
+    if (name.length < 2) return;
+    setNameLookupLoading(true);
+    try {
+      const data = await fetchByName(name);
+      if (!data) { showToast('PubChem에서 물질을 찾지 못했어요'); return; }
+      const filled = new Set<string>(autofilled);
+      if (data.casNumber && !casNumber.trim()) { setCasNumber(data.casNumber); filled.add('cas'); }
+      if (data.mw) { setMw(String(data.mw)); setMwAutoTag(true); filled.add('mw'); }
+      if (data.smiles) { setSmiles(data.smiles); filled.add('smiles'); }
+      if (data.inchiKey) setInchiKey(data.inchiKey);
+      if (data.iupacName) { setCompoundName(data.iupacName); filled.add('compound'); }
+      setAutofilled(filled);
+      showToast('PubChem에서 정보를 자동으로 채웠어요');
+    } catch {
+      showToast('PubChem 조회 중 오류가 발생했어요');
+    } finally {
+      setNameLookupLoading(false);
     }
   }
 
@@ -170,6 +210,8 @@ export default function RegisterModal({
       pinCode: pin,
       compoundName,
       casNumber,
+      smiles: smiles || undefined,
+      inchiKey: inchiKey || undefined,
       mw: mw ? parseFloat(mw) : undefined,
       supplier: supplier || undefined,
       productNumber: productNumber || undefined,
@@ -217,7 +259,8 @@ export default function RegisterModal({
   function resetForm() {
     setSuccess(null); setBulkSuccess(null);
     setCompoundName(''); setCasNumber(''); setSupplier(''); setProductNumber('');
-    setMw(''); setQuantity(''); setLocation(''); setStorageConditions([]);
+    setMw(''); setSmiles(''); setInchiKey('');
+    setQuantity(''); setLocation(''); setStorageConditions([]);
     setAutofilled(new Set()); setAutofillBanner(null); setLinkInput('');
     setMwAutoTag(false); setBulkFile(null); setBulkParsed(null); setBulkFileErr('');
     setSubmitLoading(false);
@@ -347,22 +390,39 @@ export default function RegisterModal({
                 <div style={{ fontSize: '12px', fontWeight: 500, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: '12px' }}>식별 정보</div>
 
                 <div style={{ marginBottom: '10px' }}>
-                  <label style={{ display: 'block', fontSize: '12px', color: 'var(--muted)', marginBottom: '4px' }}>컴파운드명 <span style={{ color: 'var(--red)' }}>*</span></label>
-                  <input
-                    value={compoundName}
-                    onChange={(e) => setCompoundName(e.target.value)}
-                    readOnly={autofilled.has('compound')}
-                    placeholder="예) 4-Aminophenol"
-                    style={{
-                      width: '100%', height: '34px', border: '1px solid var(--border2)', borderRadius: 'var(--r)',
-                      padding: '0 10px', fontSize: '13px', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
-                      background: autofilled.has('compound') ? '#EAF3DE' : 'var(--surface)',
-                      color: 'var(--text)',
-                      borderColor: autofilled.has('compound') ? '#3B6D11' : undefined,
-                    }}
-                    onFocus={(e) => { if (!autofilled.has('compound')) e.currentTarget.style.borderColor = 'var(--blue)'; }}
-                    onBlur={(e) => { if (!autofilled.has('compound')) e.currentTarget.style.borderColor = 'var(--border2)'; }}
-                  />
+                  <label style={{ display: 'block', fontSize: '12px', color: 'var(--muted)', marginBottom: '4px' }}>
+                    컴파운드명 <span style={{ color: 'var(--red)' }}>*</span>
+                    <span style={{ fontWeight: 400, color: 'var(--hint)', marginLeft: '6px', fontSize: '11px' }}>이름 입력 후 🔍로 PubChem 자동완성</span>
+                  </label>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <input
+                      value={compoundName}
+                      onChange={(e) => setCompoundName(e.target.value)}
+                      readOnly={autofilled.has('compound')}
+                      placeholder="예) 4-Aminophenol"
+                      style={{
+                        flex: 1, height: '34px', border: '1px solid var(--border2)', borderRadius: 'var(--r)',
+                        padding: '0 10px', fontSize: '13px', fontFamily: 'inherit', outline: 'none',
+                        background: autofilled.has('compound') ? '#EAF3DE' : 'var(--surface)',
+                        color: 'var(--text)',
+                        borderColor: autofilled.has('compound') ? '#3B6D11' : undefined,
+                      }}
+                      onFocus={(e) => { if (!autofilled.has('compound')) e.currentTarget.style.borderColor = 'var(--blue)'; }}
+                      onBlur={(e) => { if (!autofilled.has('compound')) e.currentTarget.style.borderColor = 'var(--border2)'; }}
+                    />
+                    <button
+                      disabled={compoundName.trim().length < 2 || nameLookupLoading}
+                      onClick={doNameLookup}
+                      className="btn"
+                      title="물질명으로 PubChem 검색"
+                      style={{
+                        height: '34px', whiteSpace: 'nowrap', fontSize: '13px',
+                        opacity: (compoundName.trim().length < 2 || nameLookupLoading) ? 0.45 : 1,
+                      }}
+                    >
+                      {nameLookupLoading ? '...' : '🔍'}
+                    </button>
+                  </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
@@ -421,6 +481,26 @@ export default function RegisterModal({
                     <input type="number" step="any" value={mw} onChange={(e) => setMw(e.target.value)} placeholder="109.13" style={{ width: '100%', height: '34px', border: '1px solid var(--border2)', borderRadius: 'var(--r)', padding: '0 10px', fontSize: '13px', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', background: autofilled.has('mw') ? '#EAF3DE' : 'var(--surface)', color: 'var(--text)' }} />
                   </div>
                 </div>
+
+                {/* SMILES — PubChem 자동완성 시만 표시 */}
+                {smiles && (
+                  <div style={{ marginBottom: '4px' }}>
+                    <label style={{ display: 'block', fontSize: '12px', color: 'var(--muted)', marginBottom: '4px' }}>
+                      SMILES
+                      <span style={{ fontSize: '10px', background: '#EAF3DE', color: '#3B6D11', padding: '1px 5px', borderRadius: '3px', marginLeft: '4px' }}>자동완성</span>
+                    </label>
+                    <input
+                      value={smiles}
+                      onChange={(e) => setSmiles(e.target.value)}
+                      style={{
+                        width: '100%', height: '34px', border: '1px solid #3B6D11', borderRadius: 'var(--r)',
+                        padding: '0 10px', fontSize: '11px', fontFamily: "'IBM Plex Mono', monospace",
+                        outline: 'none', boxSizing: 'border-box',
+                        background: '#EAF3DE', color: '#3B6D11',
+                      }}
+                    />
+                  </div>
+                )}
               </div>
 
               <div style={{ height: '1px', background: 'var(--border)', margin: '0 20px' }} />

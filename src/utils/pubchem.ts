@@ -10,6 +10,40 @@ export interface PubChemResult {
   mw?: number;
   iupacName?: string;
   inchiKey?: string;
+  casNumber?: string;  // 동의어에서 추출한 CAS 번호 (이름 검색 시)
+}
+
+const CAS_RE = /^\d{2,7}-\d{2}-\d$/;
+
+/**
+ * PubChem props 배열에서 분자 정보 파싱 (공통 로직)
+ */
+function parseProps(
+  props: Array<{ urn: { label: string; name?: string }; value: { sval?: string; fval?: number } }>,
+): Omit<PubChemResult, 'casNumber'> {
+  let mw: number | undefined;
+  let smiles: string | undefined;
+  let iupacName: string | undefined;
+  let inchiKey: string | undefined;
+
+  props.forEach((p) => {
+    const { label, name } = p.urn;
+    if (label === 'Molecular Weight') {
+      const val = p.value.fval ?? parseFloat(p.value.sval ?? '');
+      if (!isNaN(val)) mw = val;
+    }
+    if (label === 'SMILES' && name === 'Isomeric') {
+      smiles = p.value.sval;
+    }
+    if (label === 'IUPAC Name' && name === 'Preferred') {
+      iupacName = p.value.sval;
+    }
+    if (label === 'InChIKey') {
+      inchiKey = p.value.sval;
+    }
+  });
+
+  return { compoundName: iupacName, smiles, mw, iupacName, inchiKey };
 }
 
 /**
@@ -21,32 +55,50 @@ export async function fetchByCas(cas: string): Promise<PubChemResult | null> {
     const res = await fetch(url);
     if (!res.ok) return null;
     const json = await res.json();
-    const props: Array<{ urn: { label: string; name?: string }; value: { sval?: string; fval?: number } }> =
-      json.PC_Compounds?.[0]?.props || [];
+    const compound = json.PC_Compounds?.[0];
+    if (!compound) return null;
 
-    let mw: number | undefined;
-    let smiles: string | undefined;
-    let iupacName: string | undefined;
-    let inchiKey: string | undefined;
+    const props = compound.props || [];
+    return parseProps(props);
+  } catch {
+    return null;
+  }
+}
 
-    props.forEach((p) => {
-      const { label, name } = p.urn;
-      if (label === 'Molecular Weight') {
-        const val = p.value.fval ?? parseFloat(p.value.sval ?? '');
-        if (!isNaN(val)) mw = val;
-      }
-      if (label === 'SMILES' && name === 'Isomeric') {
-        smiles = p.value.sval;
-      }
-      if (label === 'IUPAC Name' && name === 'Preferred') {
-        iupacName = p.value.sval;
-      }
-      if (label === 'InChIKey') {
-        inchiKey = p.value.sval;
-      }
-    });
+/**
+ * 물질명으로 PubChem에서 화합물 정보 조회
+ * CAS 번호는 동의어 목록에서 추출
+ */
+export async function fetchByName(name: string): Promise<PubChemResult | null> {
+  try {
+    const url = `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/${encodeURIComponent(name)}/JSON`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const json = await res.json();
+    const compound = json.PC_Compounds?.[0];
+    if (!compound) return null;
 
-    return { compoundName: iupacName, smiles, mw, iupacName, inchiKey };
+    const result = parseProps(compound.props || []);
+    const cid: number | undefined = compound.id?.id?.cid;
+
+    // 동의어에서 CAS 번호 추출
+    let casNumber: string | undefined;
+    if (cid) {
+      try {
+        const synRes = await fetch(
+          `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/${cid}/synonyms/JSON`,
+        );
+        if (synRes.ok) {
+          const synJson = await synRes.json();
+          const synonyms: string[] = synJson.InformationList?.Information?.[0]?.Synonym ?? [];
+          casNumber = synonyms.find((s) => CAS_RE.test(s));
+        }
+      } catch {
+        // CAS 추출 실패 시 무시
+      }
+    }
+
+    return { ...result, casNumber };
   } catch {
     return null;
   }
