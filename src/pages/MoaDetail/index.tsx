@@ -319,20 +319,26 @@ export default function MoaDetailPage({ card, onBack, isMobile = false }: Props)
           padding: '0 14px', flexShrink: 0, display: 'flex', flexDirection: 'column',
         }}>
           {/* Row 1: 뒤로 + 실험번호 + 저장 */}
-          <div style={{ height: '44px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ height: '48px', display: 'flex', alignItems: 'center', gap: '8px', padding: '0 0 0 0' }}>
             <button
               className="btn btn-b"
-              style={{ padding: '4px 10px', fontSize: '12px' }}
+              style={{ padding: '4px 10px', fontSize: '12px', flexShrink: 0 }}
               onClick={onBack}
             >← 목록</button>
-            <span style={{ fontSize: '12px', fontFamily: 'var(--fm, monospace)', color: 'var(--tx3, #9ca3af)' }}>{card.id}</span>
-            <span style={{ fontSize: '13px', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{metaTitle}</span>
+            <div style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
+              <div style={{ fontSize: '13px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--tx, #111)' }}>
+                {metaTitle}
+              </div>
+              <div style={{ fontSize: '10px', fontFamily: 'var(--fm, monospace)', color: 'var(--tx3, #9ca3af)', marginTop: '1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {card.id}
+              </div>
+            </div>
             <button
               className="btn btn-p"
               style={{ padding: '4px 12px', fontSize: '12px', flexShrink: 0, opacity: saving ? 0.6 : 1 }}
               onClick={updateLastMod}
               disabled={saving}
-            >{saving ? '저장 중…' : '💾 저장'}</button>
+            >{saving ? '저장 중…' : '저장'}</button>
           </div>
 
           {/* Row 2: 탭 바 */}
@@ -368,7 +374,7 @@ export default function MoaDetailPage({ card, onBack, isMobile = false }: Props)
                 {/* Scheme 미니 */}
                 <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border, #e5e7eb)', background: 'var(--surface, #fff)' }}>
                   <div style={{ fontSize: '10px', fontWeight: 500, color: 'var(--tx3)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: '6px' }}>Scheme</div>
-                  <div className="sb" style={{ overflowX: 'auto' }}>
+                  <div className="sb" style={{ overflowX: 'auto', flexWrap: 'nowrap' }}>
                     <div className="cbox"><div className="vbadge">변수</div><div className="cl clE">E</div><div className="cm">실험별 상이</div></div>
                     <div className="cplus">+</div>
                     {com.map((c, i) => (

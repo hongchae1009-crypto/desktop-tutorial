@@ -421,7 +421,11 @@ function MobileCardItem({ card, onClick, onDelete }: { card: MoaCard; onClick: (
       {/* 상단: 상태 + ID + 삭제 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
         <span className={`stag s-${card.status}`}>{STATUS_LABELS[card.status]}</span>
-        <span style={{ fontSize: '10px', color: 'var(--tx3, #9ca3af)', fontFamily: 'var(--fm, monospace)' }}>{card.id}</span>
+        <span style={{
+          fontSize: '10px', color: 'var(--tx3, #9ca3af)', fontFamily: 'var(--fm, monospace)',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          maxWidth: 'calc(100% - 80px)',
+        }}>{card.id}</span>
         <button
           onClick={e => { e.stopPropagation(); onDelete() }}
           style={{

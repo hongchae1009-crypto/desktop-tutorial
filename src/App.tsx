@@ -100,11 +100,6 @@ export default function App() {
           display: 'flex', alignItems: 'center', padding: '0 14px', gap: '10px', zIndex: 100,
         }}>
           {logo}
-          {view === 'detail' && activeCard && (
-            <span style={{ fontSize: '11px', color: 'var(--tx3, #9ca3af)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '160px' }}>
-              {activeCard.title}
-            </span>
-          )}
           <div style={{ marginLeft: 'auto' }}>{avatar}</div>
         </header>
 
