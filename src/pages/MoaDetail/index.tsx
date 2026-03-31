@@ -490,17 +490,15 @@ export default function MoaDetailPage({ card, onBack, isMobile = false }: Props)
 
             {/* ──── 더보기 탭 ──── */}
             {mobileTab === 'more' && (
-              <div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                 <DashboardCard
                   exp={exp} resRows={resRows}
                   dashNote={dashNote} setDashNote={setDashNote}
+                  isMobile
                 />
                 <CommentsCard />
-                <div style={{ padding: '0 0 12px' }}>
-                  <SignatureCard sig={sig} setSig={setSig} onHistory={addHistory} style={{}} />
-                  <div style={{ height: '10px' }} />
-                  <HistoryCard history={history} style={{}} />
-                </div>
+                <SignatureCard sig={sig} setSig={setSig} onHistory={addHistory} style={{ margin: '0 0 10px' }} />
+                <HistoryCard history={history} style={{ margin: '0 0 16px' }} />
               </div>
             )}
 

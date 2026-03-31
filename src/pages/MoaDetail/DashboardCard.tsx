@@ -8,9 +8,10 @@ interface Props {
   resRows: ResRow[]
   dashNote: { text: string; imgs: { name: string; dataUrl: string }[] }
   setDashNote: React.Dispatch<React.SetStateAction<{ text: string; imgs: { name: string; dataUrl: string }[] }>>
+  isMobile?: boolean
 }
 
-export default function DashboardCard({ exp, resRows, dashNote, setDashNote }: Props) {
+export default function DashboardCard({ exp, resRows, dashNote, setDashNote, isMobile = false }: Props) {
   const calcYield = (inputMg: string, outputMg: string) => {
     const i = parseFloat(inputMg), o = parseFloat(outputMg)
     if (isNaN(i) || i <= 0 || isNaN(o) || o <= 0) return null
@@ -46,20 +47,20 @@ export default function DashboardCard({ exp, resRows, dashNote, setDashNote }: P
       <div className="ch"><span className="ct">실험 대시보드</span></div>
       <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-        {/* KPI */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
+        {/* KPI — 모바일: 2×2 그리드, 데스크톱: 4열 */}
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap: 10 }}>
           <KpiCard label="총 실험 수" value={total} />
           <KpiCard label="완료된 실험" value={completed} sub={`${total - completed}개 미완료`} />
           <KpiCard label="최고 Yield" value={best !== null ? `${best}%` : '—'} sub={best !== null && bestIdx >= 0 ? exp[bestIdx]?.id : undefined} color="var(--green)" />
           <KpiCard label="평균 Yield" value={avg !== null ? `${avg}%` : '—'} sub="완료 기준" />
         </div>
 
-        {/* Table + Bar */}
-        <div style={{ display: 'flex', gap: 0 }}>
+        {/* Table + Bar — 모바일: 세로 배치 + 각각 가로 스크롤, 데스크톱: 가로 배치 */}
+        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 12 : 0 }}>
           {/* Table */}
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ flex: 1, minWidth: 0, overflowX: isMobile ? 'auto' : 'visible' }}>
             <div style={{ fontSize: 9, fontWeight: 500, color: 'var(--tx3)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 8 }}>변수시약 vs 결과</div>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: isMobile ? 320 : undefined }}>
               <thead>
                 <tr>
                   <th className="dash-th">실험번호</th>
@@ -85,9 +86,9 @@ export default function DashboardCard({ exp, resRows, dashNote, setDashNote }: P
             </table>
           </div>
 
-          {/* Bar chart — same row height */}
-          <div style={{ width: 220, flexShrink: 0 }}>
-            <div style={{ fontSize: 9, fontWeight: 500, color: 'var(--tx3)', textTransform: 'uppercase', letterSpacing: '.5px', padding: '5px 8px', background: 'var(--bg2)', borderBottom: '0.5px solid var(--bd2)', height: 37, display: 'flex', alignItems: 'center' }}>Yield 비교</div>
+          {/* Bar chart */}
+          <div style={{ width: isMobile ? '100%' : 220, flexShrink: 0 }}>
+            <div style={{ fontSize: 9, fontWeight: 500, color: 'var(--tx3)', textTransform: 'uppercase', letterSpacing: '.5px', padding: '5px 8px', background: 'var(--bg2)', borderBottom: '0.5px solid var(--bd2)', height: isMobile ? 'auto' : 37, display: 'flex', alignItems: 'center', paddingTop: isMobile ? 8 : undefined, paddingBottom: isMobile ? 8 : undefined }}>Yield 비교</div>
             {resRows.map((row, ri) => {
               const yld = calcYield(row.inputMg, row.outputMg)
               const isBest = ri === bestIdx && yld !== null
