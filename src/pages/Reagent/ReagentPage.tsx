@@ -39,6 +39,8 @@ import SendToMoaModal       from './components/SendToMoaModal/SendToMoaModal';
 import PrintModal           from './components/PrintModal/PrintModal';
 import LabelModal          from './components/LabelModal/LabelModal';
 import StructureSearchModal from './components/StructureSearchModal/StructureSearchModal';
+import QrModal             from './components/QrModal/QrModal';
+import QrScanModal         from './components/QrScanModal/QrScanModal';
 
 const PER_PAGE_CARD  = 9;
 const PER_PAGE_TABLE = 20;
@@ -102,6 +104,8 @@ function ReagentPageInner() {
   const [showStructureSearchModal, setShowStructureSearchModal] = useState(false);
   const [structureQuery, setStructureQuery] = useState('');
   const [basketSheetOpen, setBasketSheetOpen] = useState(false);
+  const [qrTargetId, setQrTargetId] = useState<string | null>(null);
+  const [showQrScan, setShowQrScan] = useState(false);
 
   const modalReagent = reagents.find((r) => r.id === modalId) ?? null;
 
@@ -379,6 +383,16 @@ function ReagentPageInner() {
     setPage(1);
   }
 
+  function handleQrScan(pinCode: string) {
+    const reagent = reagents.find((r) => r.pinCode === pinCode);
+    if (reagent) {
+      setModalId(reagent.id);
+      showToast(`${reagent.compoundName} 시약을 찾았습니다`);
+    } else {
+      showToast(`PIN ${pinCode}에 해당하는 시약을 찾을 수 없습니다`);
+    }
+  }
+
   function handleModalDisuse(id: string) {
     setReagents((prev) =>
       prev.map((r) => r.id === id ? { ...r, isActive: false, updatedAt: new Date() } : r),
@@ -483,6 +497,18 @@ function ReagentPageInner() {
         onClear={handleStructureClear}
         onClose={() => setShowStructureSearchModal(false)}
       />
+      {qrTargetId && reagents.find((r) => r.id === qrTargetId) && (
+        <QrModal
+          reagent={reagents.find((r) => r.id === qrTargetId)!}
+          onClose={() => setQrTargetId(null)}
+        />
+      )}
+      {showQrScan && (
+        <QrScanModal
+          onClose={() => setShowQrScan(false)}
+          onResult={handleQrScan}
+        />
+      )}
       <SendToMoaModal
         open={sendToMoaOpen}
         basket={basket.items}
@@ -515,6 +541,7 @@ function ReagentPageInner() {
             onPrint={handlePrint}
             onLabelPrint={handleLabelPrint}
             onStructureSearch={() => setShowStructureSearchModal(true)}
+            onQrScan={() => setShowQrScan(true)}
             structureActive={!!structureQuery}
             reagents={sorted}
           />
@@ -543,6 +570,7 @@ function ReagentPageInner() {
                   selectedIds={selectedIds}
                   onSelect={handleSelect}
                   onCardClick={setModalId}
+                  onQr={setQrTargetId}
                   cols={1}
                 />
               ) : (
@@ -705,6 +733,7 @@ function ReagentPageInner() {
             onPrint={handlePrint}
             onLabelPrint={handleLabelPrint}
             onStructureSearch={() => setShowStructureSearchModal(true)}
+            onQrScan={() => setShowQrScan(true)}
             structureActive={!!structureQuery}
             reagents={sorted}
           />
@@ -739,6 +768,7 @@ function ReagentPageInner() {
                   selectedIds={selectedIds}
                   onSelect={handleSelect}
                   onCardClick={setModalId}
+                  onQr={setQrTargetId}
                 />
               ) : (
                 <QuantTable

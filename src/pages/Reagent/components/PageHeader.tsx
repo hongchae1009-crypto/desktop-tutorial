@@ -10,12 +10,13 @@ interface PageHeaderProps {
   onPrint: () => void;
   onLabelPrint: () => void;
   onStructureSearch: () => void;
+  onQrScan?: () => void;
   structureActive?: boolean;
   reagents?: ReagentItem[];
   isMobile?: boolean;
 }
 
-export default function PageHeader({ searchValue, onSearch, onRegister, onPrint, onLabelPrint, onStructureSearch, structureActive = false, reagents = [], isMobile = false }: PageHeaderProps) {
+export default function PageHeader({ searchValue, onSearch, onRegister, onPrint, onLabelPrint, onStructureSearch, onQrScan, structureActive = false, reagents = [], isMobile = false }: PageHeaderProps) {
   const { showToast } = useToast();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -77,6 +78,7 @@ export default function PageHeader({ searchValue, onSearch, onRegister, onPrint,
             { label: '🖨 인쇄', onClick: onPrint, active: false },
             { label: '📊 엑셀', onClick: handleExcelDownload, active: false },
             { label: structureActive ? '🔬 구조 ✓' : '🔬 구조', onClick: onStructureSearch, active: structureActive },
+            ...(onQrScan ? [{ label: '📷 QR 스캔', onClick: onQrScan, active: false }] : []),
           ].map(({ label, onClick, active }) => (
             <button
               key={label}
@@ -151,6 +153,11 @@ export default function PageHeader({ searchValue, onSearch, onRegister, onPrint,
           >
             {structureActive ? '구조 검색 ✓' : '구조 검색'}
           </button>
+          {onQrScan && (
+            <button className="btn" onClick={onQrScan} title="QR 코드로 시약 검색">
+              📷 QR 스캔
+            </button>
+          )}
         </div>
       </div>
     </div>

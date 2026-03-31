@@ -2,13 +2,7 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "HTML Prototype (moa_experiment_v6)",
-      "runtimeExecutable": "py",
-      "runtimeArgs": ["-m", "http.server", "3000"],
-      "port": 3000
-    },
-    {
-      "name": "React Dev Server (Vite)",
+      "name": "dev",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 5173

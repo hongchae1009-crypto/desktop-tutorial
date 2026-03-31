@@ -6,6 +6,7 @@ interface ReagentCardProps {
   selected: boolean;
   onSelect: (id: string, checked: boolean) => void;
   onClick: (id: string) => void;
+  onQr?: (id: string) => void;
 }
 
 const META_ROWS: Array<{ label: string; getValue: (r: ReagentItem) => string; mono?: boolean }> = [
@@ -26,7 +27,7 @@ const CONDITION_COLORS: Record<string, { bg: string; color: string }> = {
   '불활성':{ bg: '#EAF3DE', color: '#3B6D11' },
 };
 
-export default function ReagentCard({ reagent, selected, onSelect, onClick }: ReagentCardProps) {
+export default function ReagentCard({ reagent, selected, onSelect, onClick, onQr }: ReagentCardProps) {
   return (
     <article
       style={{
@@ -128,14 +129,15 @@ export default function ReagentCard({ reagent, selected, onSelect, onClick }: Re
         </div>
       </div>
 
-      {/* 보관조건 칩 */}
-      {reagent.storageConditions && reagent.storageConditions.length > 0 && (
-        <div style={{
-          display: 'flex', flexWrap: 'wrap', gap: '4px',
-          padding: '6px 10px 8px',
-          borderTop: '1px solid var(--border)',
-        }}>
-          {reagent.storageConditions.map((cond) => {
+      {/* 보관조건 칩 + QR 버튼 */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '6px 8px 8px 10px',
+        borderTop: reagent.storageConditions?.length ? '1px solid var(--border)' : 'none',
+        minHeight: 32,
+      }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+          {reagent.storageConditions?.map((cond) => {
             const style = CONDITION_COLORS[cond] ?? { bg: '#F0F2F6', color: '#6B7280' };
             return (
               <span key={cond} style={{
@@ -147,7 +149,29 @@ export default function ReagentCard({ reagent, selected, onSelect, onClick }: Re
             );
           })}
         </div>
-      )}
+        {/* QR 코드 버튼 */}
+        {onQr && (
+          <button
+            title="QR 코드 보기"
+            onClick={(e) => { e.stopPropagation(); onQr(reagent.id); }}
+            style={{
+              flexShrink: 0, width: 22, height: 22, borderRadius: 5,
+              border: '1px solid var(--border2)', background: 'var(--surface2)',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 12, color: 'var(--muted)', padding: 0,
+              transition: 'background .12s, color .12s',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--blue-bg)'; e.currentTarget.style.color = 'var(--blue)'; e.currentTarget.style.borderColor = 'var(--blue-bd)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--surface2)'; e.currentTarget.style.color = 'var(--muted)'; e.currentTarget.style.borderColor = 'var(--border2)'; }}
+          >
+            <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
+              <rect x="2" y="2" width="7" height="7" rx="1"/><rect x="11" y="2" width="7" height="7" rx="1"/>
+              <rect x="2" y="11" width="7" height="7" rx="1"/>
+              <path d="M11 11h2v2h-2zM15 11h3v2M15 15v3h3M11 15h2v3"/>
+            </svg>
+          </button>
+        )}
+      </div>
     </article>
   );
 }

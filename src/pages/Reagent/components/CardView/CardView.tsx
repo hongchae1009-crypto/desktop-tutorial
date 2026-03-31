@@ -6,10 +6,11 @@ interface CardViewProps {
   selectedIds: Set<string>;
   onSelect: (id: string, checked: boolean) => void;
   onCardClick: (id: string) => void;
+  onQr?: (id: string) => void;
   cols?: number;
 }
 
-export default function CardView({ reagents, selectedIds, onSelect, onCardClick, cols = 3 }: CardViewProps) {
+export default function CardView({ reagents, selectedIds, onSelect, onCardClick, onQr, cols = 3 }: CardViewProps) {
   if (reagents.length === 0) {
     return (
       <div style={{
@@ -38,6 +39,7 @@ export default function CardView({ reagents, selectedIds, onSelect, onCardClick,
           selected={selectedIds.has(r.id)}
           onSelect={onSelect}
           onClick={onCardClick}
+          onQr={onQr}
         />
       ))}
     </div>
